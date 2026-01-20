@@ -1,45 +1,228 @@
 {
+    // VSCode Tasks配置 - 跨平台支持 (Windows/Mac/Linux)
     // See https://go.microsoft.com/fwlink/?LinkId=733558
     "version": "2.0.0",
-    "tasks": [
+
+    // 输入选项：选择烧录方式
+    "inputs": [
         {
-            "label": "build task",         // 任务标签
-            "type": "shell",               // 任务类型,因为要调用mingw32-make,是在终端(CMD)里运行的,所以是shell任务
-            "command": "mingw32-make -j24",// 任务命令,线程数可以根据自己的电脑修改,建议与cpu核数相同
-            "problemMatcher": [],          
+            "id": "flashMethod",
+            "type": "pickString",
+            "description": "选择烧录方式",
+            "options": [
+                "dfu-util (USB DFU模式，推荐)",
+                "openocd + dap-link (无线调试器)",
+                "openocd + stlink",
+                "jlink (仅Windows)"
+            ],
+            "default": "dfu-util (USB DFU模式，推荐)"
+        }
+    ],
+
+    "tasks": [
+        // ==================== 编译任务 ====================
+        {
+            "label": "build",
+            "type": "shell",
+            // Windows使用mingw32-make，Mac/Linux使用make
+            "windows": {
+                "command": "mingw32-make",
+                "args": ["-j12"]
+            },
+            "linux": {
+                "command": "make",
+                "args": ["-j12"]
+            },
+            "osx": {
+                "command": "make",
+                "args": ["-j12"]
+            },
+            "problemMatcher": ["$gcc"],
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
-        },
-        {
-            "label": "download dap",
-            "type": "shell",               // 如果希望在下载前编译,可以把command换成下面的命令
-            "command":"mingw32-make -j24 ; mingw32-make download_dap", // "mingw32-make -j24 ; mingw32-make download_dap",
-            "group": {                     // 如果没有修改代码,编译任务不会消耗时间,因此推荐使用上面的替换.
-                "kind": "build",
-                "isDefault": false,
             },
-        },
-        {
-            "label": "download jlink", // 要使用此任务,需添加jlink的环境变量
-            "type": "shell",
-            "command":"mingw32-make -j24 ; mingw32-make download_jlink", // "mingw32-make -j24 ; mingw32-make download_jlink"
-            "group": {
-                "kind": "build",
-                "isDefault": false,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
             }
         },
+
+        // ==================== 清理任务 ====================
+        {
+            "label": "clean",
+            "type": "shell",
+            "windows": {
+                "command": "mingw32-make",
+                "args": ["clean"]
+            },
+            "linux": {
+                "command": "make",
+                "args": ["clean"]
+            },
+            "osx": {
+                "command": "make",
+                "args": ["clean"]
+            },
+            "problemMatcher": []
+        },
+
+        // ==================== 重新编译 ====================
+        {
+            "label": "rebuild",
+            "dependsOrder": "sequence",
+            "dependsOn": ["clean", "build"],
+            "problemMatcher": []
+        },
+
+        // ==================== 烧录任务 - DFU-Util ====================
+        {
+            "label": "flash: dfu-util",
+            "type": "shell",
+            "dependsOn": "build",
+            "dependsOrder": "sequence",
+            "windows": {
+                "command": "mingw32-make",
+                "args": ["flash_dfu"]
+            },
+            "linux": {
+                "command": "make",
+                "args": ["flash_dfu"]
+            },
+            "osx": {
+                "command": "make",
+                "args": ["flash_dfu"]
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            }
+        },
+
+        // ==================== 烧录任务 - DAP-Link ====================
+        {
+            "label": "flash: dap-link",
+            "type": "shell",
+            "dependsOn": "build",
+            "dependsOrder": "sequence",
+            "windows": {
+                "command": "mingw32-make",
+                "args": ["flash_dap"]
+            },
+            "linux": {
+                "command": "make",
+                "args": ["flash_dap"]
+            },
+            "osx": {
+                "command": "make",
+                "args": ["flash_dap"]
+            },
+            "problemMatcher": []
+        },
+
+        // ==================== 烧录任务 - ST-Link ====================
+        {
+            "label": "flash: stlink",
+            "type": "shell",
+            "dependsOn": "build",
+            "dependsOrder": "sequence",
+            "windows": {
+                "command": "mingw32-make",
+                "args": ["flash_stlink"]
+            },
+            "linux": {
+                "command": "make",
+                "args": ["flash_stlink"]
+            },
+            "osx": {
+                "command": "make",
+                "args": ["flash_stlink"]
+            },
+            "problemMatcher": []
+        },
+
+        // ==================== 烧录任务 - JLink ====================
+        {
+            "label": "flash: jlink",
+            "type": "shell",
+            "dependsOn": "build",
+            "dependsOrder": "sequence",
+            "windows": {
+                "command": "mingw32-make",
+                "args": ["flash_jlink"]
+            },
+            "linux": {
+                "command": "make",
+                "args": ["flash_jlink"]
+            },
+            "osx": {
+                "command": "make",
+                "args": ["flash_jlink"]
+            },
+            "problemMatcher": []
+        },
+
+        // ==================== 快速烧录（使用默认方式）====================
+        {
+            "label": "flash (default: dfu)",
+            "type": "shell",
+            "dependsOn": "build",
+            "dependsOrder": "sequence",
+            "windows": {
+                "command": "mingw32-make",
+                "args": ["flash"]
+            },
+            "linux": {
+                "command": "make",
+                "args": ["flash"]
+            },
+            "osx": {
+                "command": "make",
+                "args": ["flash"]
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            }
+        },
+
+        // ==================== RTT日志查看 ====================
         {
             "label": "log",
             "type": "shell",
-            "command":"JlinkRTTClient",
+            "command": "JlinkRTTClient",
             "args": [],
             "problemMatcher": [],
-            // "dependsOn":[
-            //     "build task", // 可以添加多个.
-            // ]
-            // 若使用daplink,则将log任务设置为依赖于jlink launch任务,保证jlink launch任务先于log任务执行
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated"
+            }
+        },
+
+        // ==================== 传统兼容任务 ====================
+        // 保留旧的命名以兼容现有脚本
+        {
+            "label": "build task",
+            "dependsOn": "build"
+        },
+        {
+            "label": "download dap",
+            "dependsOn": "flash: dap-link"
+        },
+        {
+            "label": "download jlink",
+            "dependsOn": "flash: jlink"
         }
     ]
 }

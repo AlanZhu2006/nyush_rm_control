@@ -7,5 +7,39 @@
         "usbd_conf.h": "c",
         "usbd_desc.h": "c",
         "usbd_cdc_if.h": "c"
-    }
+    },
+
+    // ==================== Cortex-Debug 跨平台配置 ====================
+    // Mac (Homebrew安装)
+    "cortex-debug.armToolchainPath.osx": "/opt/homebrew/bin",
+    "cortex-debug.openocdPath.osx": "/opt/homebrew/bin/openocd",
+    "cortex-debug.JLinkGDBServerPath.osx": "/Applications/SEGGER/JLink/JLinkGDBServerCLExe",
+
+    // Windows (MSYS2/MinGW安装) - 请根据实际安装路径修改
+    "cortex-debug.armToolchainPath.windows": "D:\\msys2\\mingw64\\bin",
+    "cortex-debug.openocdPath.windows": "D:\\msys2\\mingw64\\bin\\openocd.exe",
+    "cortex-debug.JLinkGDBServerPath.windows": "C:\\Program Files\\SEGGER\\JLink\\JLinkGDBServerCL.exe",
+
+    // Linux
+    "cortex-debug.armToolchainPath.linux": "/usr/bin",
+    "cortex-debug.openocdPath.linux": "/usr/bin/openocd",
+
+    // 通用配置（向后兼容，Mac当前配置）
+    "cortex-debug.armToolchainPath": "/opt/homebrew/bin",
+    "cortex-debug.openocdPath": "/opt/homebrew/bin/openocd",
+
+    // ==================== Makefile Tools 跨平台配置 ====================
+    "makefile.makePath.osx": "/usr/bin/make",
+    "makefile.makePath.linux": "/usr/bin/make",
+    "makefile.makePath.windows": "mingw32-make",
+    "makefile.makePath": "/usr/bin/make",
+
+    // ==================== C/C++ 配置 ====================
+    "C_Cpp.default.compilerPath": "/opt/homebrew/bin/arm-none-eabi-gcc",
+    "C_Cpp.default.intelliSenseMode": "gcc-arm",
+
+    // ==================== 编辑器配置 ====================
+    "files.encoding": "utf8",
+    "editor.formatOnSave": false,
+    "files.eol": "\n"
 }
