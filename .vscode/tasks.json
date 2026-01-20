@@ -26,8 +26,15 @@
             "type": "shell",
             // Windows使用mingw32-make，Mac/Linux使用make
             "windows": {
-                "command": "C:\\msys64\\mingw64\\bin\\mingw32-make.exe",
-                "args": ["-j12"]
+                "command": "C:\\msys64\\usr\\bin\\bash.exe",
+                "args": ["-lc", "/mingw64/bin/mingw32-make -j12"],
+                "options": {
+                    "cwd": "${workspaceFolder}",
+                    "env": {
+                        "CHERE_INVOKING": "1",
+                        "MSYSTEM": "MINGW64"
+                    }
+                }
             },
             "linux": {
                 "command": "make",
@@ -55,8 +62,15 @@
             "label": "clean",
             "type": "shell",
             "windows": {
-                "command": "C:\\msys64\\mingw64\\bin\\mingw32-make.exe",
-                "args": ["clean"]
+                "command": "C:\\msys64\\usr\\bin\\bash.exe",
+                "args": ["-lc", "/mingw64/bin/mingw32-make clean"],
+                "options": {
+                    "cwd": "${workspaceFolder}",
+                    "env": {
+                        "CHERE_INVOKING": "1",
+                        "MSYSTEM": "MINGW64"
+                    }
+                }
             },
             "linux": {
                 "command": "make",
@@ -84,8 +98,15 @@
             "dependsOn": "build",
             "dependsOrder": "sequence",
             "windows": {
-                "command": "C:\\msys64\\mingw64\\bin\\mingw32-make.exe",
-                "args": ["flash_dfu"]
+                "command": "C:\\msys64\\usr\\bin\\bash.exe",
+                "args": ["-lc", "/mingw64/bin/mingw32-make flash_dfu"],
+                "options": {
+                    "cwd": "${workspaceFolder}",
+                    "env": {
+                        "CHERE_INVOKING": "1",
+                        "MSYSTEM": "MINGW64"
+                    }
+                }
             },
             "linux": {
                 "command": "make",
@@ -111,8 +132,15 @@
             "dependsOn": "build",
             "dependsOrder": "sequence",
             "windows": {
-                "command": "C:\\msys64\\mingw64\\bin\\mingw32-make.exe",
-                "args": ["flash_dap"]
+                "command": "C:\\msys64\\usr\\bin\\bash.exe",
+                "args": ["-lc", "/mingw64/bin/mingw32-make flash_dap"],
+                "options": {
+                    "cwd": "${workspaceFolder}",
+                    "env": {
+                        "CHERE_INVOKING": "1",
+                        "MSYSTEM": "MINGW64"
+                    }
+                }
             },
             "linux": {
                 "command": "make",
@@ -132,8 +160,15 @@
             "dependsOn": "build",
             "dependsOrder": "sequence",
             "windows": {
-                "command": "C:\\msys64\\mingw64\\bin\\mingw32-make.exe",
-                "args": ["flash_stlink"]
+                "command": "C:\\msys64\\usr\\bin\\bash.exe",
+                "args": ["-lc", "/mingw64/bin/mingw32-make flash_stlink"],
+                "options": {
+                    "cwd": "${workspaceFolder}",
+                    "env": {
+                        "CHERE_INVOKING": "1",
+                        "MSYSTEM": "MINGW64"
+                    }
+                }
             },
             "linux": {
                 "command": "make",
@@ -153,8 +188,15 @@
             "dependsOn": "build",
             "dependsOrder": "sequence",
             "windows": {
-                "command": "C:\\msys64\\mingw64\\bin\\mingw32-make.exe",
-                "args": ["flash_jlink"]
+                "command": "C:\\msys64\\usr\\bin\\bash.exe",
+                "args": ["-lc", "/mingw64/bin/mingw32-make flash_jlink"],
+                "options": {
+                    "cwd": "${workspaceFolder}",
+                    "env": {
+                        "CHERE_INVOKING": "1",
+                        "MSYSTEM": "MINGW64"
+                    }
+                }
             },
             "linux": {
                 "command": "make",
@@ -174,8 +216,15 @@
             "dependsOn": "build",
             "dependsOrder": "sequence",
             "windows": {
-                "command": "C:\\msys64\\mingw64\\bin\\mingw32-make.exe",
-                "args": ["flash"]
+                "command": "C:\\msys64\\usr\\bin\\bash.exe",
+                "args": ["-lc", "/mingw64/bin/mingw32-make flash"],
+                "options": {
+                    "cwd": "${workspaceFolder}",
+                    "env": {
+                        "CHERE_INVOKING": "1",
+                        "MSYSTEM": "MINGW64"
+                    }
+                }
             },
             "linux": {
                 "command": "make",
@@ -208,21 +257,6 @@
                 "focus": false,
                 "panel": "dedicated"
             }
-        },
-
-        // ==================== 传统兼容任务 ====================
-        // 保留旧的命名以兼容现有脚本
-        {
-            "label": "build task",
-            "dependsOn": "build"
-        },
-        {
-            "label": "download dap",
-            "dependsOn": "flash: dap-link"
-        },
-        {
-            "label": "download jlink",
-            "dependsOn": "flash: jlink"
         }
     ]
 }
