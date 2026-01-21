@@ -24,6 +24,10 @@ TARGET = basic_framework
 DEBUG = 1
 # optimization
 OPT = -Og
+ROBOT_TYPE ?= infantry
+ifeq ($(strip $(ROBOT_TYPE)),)
+override ROBOT_TYPE := infantry
+endif
 
 
 #######################################
@@ -107,6 +111,7 @@ C_DEFS =  \
 -DUSE_HAL_DRIVER \
 -DSTM32F407xx \
 -DARM_MATH_CM4 \
+-DROBOT_TYPE_$(ROBOT_TYPE) \
 -DDISABLE_LOG_SYSTEM # 关闭日志系统
 
 # AS includes
@@ -172,6 +177,7 @@ help:
 	@echo ""
 	@echo "使用示例:"
 	@echo "  make -j12          - 12线程并行编译"
+	@echo "  make ROBOT_TYPE=infantry - 指定机器人配置"
 	@echo "  make clean flash   - 清理后重新编译并烧录"
 	@echo ""
 	@echo "平台说明:"

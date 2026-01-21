@@ -27,20 +27,20 @@ void ShootInit()
         },
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp = 0, // 20
-                .Ki = 0, // 1
-                .Kd = 0,
+                .Kp = SHOOT_FRICTION_SPEED_PID_KP,
+                .Ki = SHOOT_FRICTION_SPEED_PID_KI,
+                .Kd = SHOOT_FRICTION_SPEED_PID_KD,
                 .Improve = PID_Integral_Limit,
-                .IntegralLimit = 10000,
-                .MaxOut = 15000,
+                .IntegralLimit = SHOOT_FRICTION_SPEED_PID_INT_LIMIT,
+                .MaxOut = SHOOT_FRICTION_SPEED_PID_MAX_OUT,
             },
             .current_PID = {
-                .Kp = 0, // 0.7
-                .Ki = 0, // 0.1
-                .Kd = 0,
+                .Kp = SHOOT_FRICTION_CURRENT_PID_KP,
+                .Ki = SHOOT_FRICTION_CURRENT_PID_KI,
+                .Kd = SHOOT_FRICTION_CURRENT_PID_KD,
                 .Improve = PID_Integral_Limit,
-                .IntegralLimit = 10000,
-                .MaxOut = 15000,
+                .IntegralLimit = SHOOT_FRICTION_CURRENT_PID_INT_LIMIT,
+                .MaxOut = SHOOT_FRICTION_CURRENT_PID_MAX_OUT,
             },
         },
         .controller_setting_init_config = {
@@ -68,26 +68,26 @@ void ShootInit()
         .controller_param_init_config = {
             .angle_PID = {
                 // 如果启用位置环来控制发弹,需要较大的I值保证输出力矩的线性度否则出现接近拨出的力矩大幅下降
-                .Kp = 0, // 10
-                .Ki = 0,
-                .Kd = 0,
-                .MaxOut = 200,
+                .Kp = SHOOT_LOADER_ANGLE_PID_KP,
+                .Ki = SHOOT_LOADER_ANGLE_PID_KI,
+                .Kd = SHOOT_LOADER_ANGLE_PID_KD,
+                .MaxOut = SHOOT_LOADER_ANGLE_PID_MAX_OUT,
             },
             .speed_PID = {
-                .Kp = 0, // 10
-                .Ki = 0, // 1
-                .Kd = 0,
+                .Kp = SHOOT_LOADER_SPEED_PID_KP,
+                .Ki = SHOOT_LOADER_SPEED_PID_KI,
+                .Kd = SHOOT_LOADER_SPEED_PID_KD,
                 .Improve = PID_Integral_Limit,
-                .IntegralLimit = 5000,
-                .MaxOut = 5000,
+                .IntegralLimit = SHOOT_LOADER_SPEED_PID_INT_LIMIT,
+                .MaxOut = SHOOT_LOADER_SPEED_PID_MAX_OUT,
             },
             .current_PID = {
-                .Kp = 0, // 0.7
-                .Ki = 0, // 0.1
-                .Kd = 0,
+                .Kp = SHOOT_LOADER_CURRENT_PID_KP,
+                .Ki = SHOOT_LOADER_CURRENT_PID_KI,
+                .Kd = SHOOT_LOADER_CURRENT_PID_KD,
                 .Improve = PID_Integral_Limit,
-                .IntegralLimit = 5000,
-                .MaxOut = 5000,
+                .IntegralLimit = SHOOT_LOADER_CURRENT_PID_INT_LIMIT,
+                .MaxOut = SHOOT_LOADER_CURRENT_PID_MAX_OUT,
             },
         },
         .controller_setting_init_config = {

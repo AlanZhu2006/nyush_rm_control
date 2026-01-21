@@ -29,6 +29,7 @@
                 "STM32F407xx",
                 "ARM_MATH_CM4",
                 "DISABLE_LOG_SYSTEM",
+                "ROBOT_TYPE_infantry",
                 "__weak=__attribute__((weak))",
                 "__packed=__attribute__((__packed__))"
             ],
@@ -66,6 +67,7 @@
                 "STM32F407xx",
                 "ARM_MATH_CM4",
                 "DISABLE_LOG_SYSTEM",
+                "ROBOT_TYPE_infantry",
                 "__weak=__attribute__((weak))",
                 "__packed=__attribute__((__packed__))"
             ],
@@ -103,6 +105,7 @@
                 "STM32F407xx",
                 "ARM_MATH_CM4",
                 "DISABLE_LOG_SYSTEM",
+                "ROBOT_TYPE_infantry",
                 "__weak=__attribute__((weak))",
                 "__packed=__attribute__((__packed__))"
             ],

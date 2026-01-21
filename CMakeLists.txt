@@ -21,6 +21,9 @@ project(basic_framework C ASM)
 # 选择构建类型
 set(CMAKE_BUILD_TYPE Debug) # Debug Release RelWithDebInfo MinSizeRel
 
+# robot config selection
+set(ROBOT_TYPE "infantry" CACHE STRING "Robot config: infantry|hero|sentry")
+
 # board specific settings, arch/fpu/instruction
 set(MCU_FLAGS -mcpu=cortex-m4 -mthumb -mthumb-interwork -mfloat-abi=hard -mfpu=fpv4-sp-d16)
 set(LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/STM32F407IGHx_FLASH.ld") # 指定链接脚本
@@ -43,6 +46,7 @@ add_definitions(
     -DUSE_HAL_DRIVER 
     -DSTM32F407xx 
     -DARM_MATH_CM4 
+    -DROBOT_TYPE_${ROBOT_TYPE}
     ) # need -D<macro> to define macro
 
 # add inc

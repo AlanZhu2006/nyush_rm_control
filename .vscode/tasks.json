@@ -6,6 +6,17 @@
     // 输入选项：选择烧录方式
     "inputs": [
         {
+            "id": "robotType",
+            "type": "pickString",
+            "description": "选择机器人配置",
+            "options": [
+                "infantry",
+                "hero",
+                "sentry"
+            ],
+            "default": "infantry"
+        },
+        {
             "id": "flashMethod",
             "type": "pickString",
             "description": "选择烧录方式",
@@ -27,7 +38,7 @@
             // Windows使用mingw32-make，Mac/Linux使用make
             "windows": {
                 "command": "C:\\msys64\\usr\\bin\\bash.exe",
-                "args": ["-lc", "/mingw64/bin/mingw32-make -j12"],
+                "args": ["-lc", "/mingw64/bin/mingw32-make -j12 ROBOT_TYPE=${input:robotType}"],
                 "options": {
                     "cwd": "${workspaceFolder}",
                     "env": {
@@ -38,11 +49,11 @@
             },
             "linux": {
                 "command": "make",
-                "args": ["-j12"]
+                "args": ["-j12", "ROBOT_TYPE=${input:robotType}"]
             },
             "osx": {
                 "command": "make",
-                "args": ["-j12"]
+                "args": ["-j12", "ROBOT_TYPE=${input:robotType}"]
             },
             "problemMatcher": ["$gcc"],
             "group": {
@@ -63,7 +74,7 @@
             "type": "shell",
             "windows": {
                 "command": "C:\\msys64\\usr\\bin\\bash.exe",
-                "args": ["-lc", "/mingw64/bin/mingw32-make clean"],
+                "args": ["-lc", "/mingw64/bin/mingw32-make clean ROBOT_TYPE=${input:robotType}"],
                 "options": {
                     "cwd": "${workspaceFolder}",
                     "env": {
@@ -74,11 +85,11 @@
             },
             "linux": {
                 "command": "make",
-                "args": ["clean"]
+                "args": ["clean", "ROBOT_TYPE=${input:robotType}"]
             },
             "osx": {
                 "command": "make",
-                "args": ["clean"]
+                "args": ["clean", "ROBOT_TYPE=${input:robotType}"]
             },
             "problemMatcher": []
         },
@@ -99,7 +110,7 @@
             "dependsOrder": "sequence",
             "windows": {
                 "command": "C:\\msys64\\usr\\bin\\bash.exe",
-                "args": ["-lc", "/mingw64/bin/mingw32-make flash_dfu"],
+                "args": ["-lc", "/mingw64/bin/mingw32-make flash_dfu ROBOT_TYPE=${input:robotType}"],
                 "options": {
                     "cwd": "${workspaceFolder}",
                     "env": {
@@ -110,11 +121,11 @@
             },
             "linux": {
                 "command": "make",
-                "args": ["flash_dfu"]
+                "args": ["flash_dfu", "ROBOT_TYPE=${input:robotType}"]
             },
             "osx": {
                 "command": "make",
-                "args": ["flash_dfu"]
+                "args": ["flash_dfu", "ROBOT_TYPE=${input:robotType}"]
             },
             "problemMatcher": [],
             "presentation": {
@@ -133,7 +144,7 @@
             "dependsOrder": "sequence",
             "windows": {
                 "command": "C:\\msys64\\usr\\bin\\bash.exe",
-                "args": ["-lc", "/mingw64/bin/mingw32-make flash_dap"],
+                "args": ["-lc", "/mingw64/bin/mingw32-make flash_dap ROBOT_TYPE=${input:robotType}"],
                 "options": {
                     "cwd": "${workspaceFolder}",
                     "env": {
@@ -144,11 +155,11 @@
             },
             "linux": {
                 "command": "make",
-                "args": ["flash_dap"]
+                "args": ["flash_dap", "ROBOT_TYPE=${input:robotType}"]
             },
             "osx": {
                 "command": "make",
-                "args": ["flash_dap"]
+                "args": ["flash_dap", "ROBOT_TYPE=${input:robotType}"]
             },
             "problemMatcher": []
         },
@@ -161,7 +172,7 @@
             "dependsOrder": "sequence",
             "windows": {
                 "command": "C:\\msys64\\usr\\bin\\bash.exe",
-                "args": ["-lc", "/mingw64/bin/mingw32-make flash_stlink"],
+                "args": ["-lc", "/mingw64/bin/mingw32-make flash_stlink ROBOT_TYPE=${input:robotType}"],
                 "options": {
                     "cwd": "${workspaceFolder}",
                     "env": {
@@ -172,11 +183,11 @@
             },
             "linux": {
                 "command": "make",
-                "args": ["flash_stlink"]
+                "args": ["flash_stlink", "ROBOT_TYPE=${input:robotType}"]
             },
             "osx": {
                 "command": "make",
-                "args": ["flash_stlink"]
+                "args": ["flash_stlink", "ROBOT_TYPE=${input:robotType}"]
             },
             "problemMatcher": []
         },
@@ -189,7 +200,7 @@
             "dependsOrder": "sequence",
             "windows": {
                 "command": "C:\\msys64\\usr\\bin\\bash.exe",
-                "args": ["-lc", "/mingw64/bin/mingw32-make flash_jlink"],
+                "args": ["-lc", "/mingw64/bin/mingw32-make flash_jlink ROBOT_TYPE=${input:robotType}"],
                 "options": {
                     "cwd": "${workspaceFolder}",
                     "env": {
@@ -200,11 +211,11 @@
             },
             "linux": {
                 "command": "make",
-                "args": ["flash_jlink"]
+                "args": ["flash_jlink", "ROBOT_TYPE=${input:robotType}"]
             },
             "osx": {
                 "command": "make",
-                "args": ["flash_jlink"]
+                "args": ["flash_jlink", "ROBOT_TYPE=${input:robotType}"]
             },
             "problemMatcher": []
         },
@@ -217,7 +228,7 @@
             "dependsOrder": "sequence",
             "windows": {
                 "command": "C:\\msys64\\usr\\bin\\bash.exe",
-                "args": ["-lc", "/mingw64/bin/mingw32-make flash"],
+                "args": ["-lc", "/mingw64/bin/mingw32-make flash ROBOT_TYPE=${input:robotType}"],
                 "options": {
                     "cwd": "${workspaceFolder}",
                     "env": {
@@ -228,11 +239,11 @@
             },
             "linux": {
                 "command": "make",
-                "args": ["flash"]
+                "args": ["flash", "ROBOT_TYPE=${input:robotType}"]
             },
             "osx": {
                 "command": "make",
-                "args": ["flash"]
+                "args": ["flash", "ROBOT_TYPE=${input:robotType}"]
             },
             "problemMatcher": [],
             "presentation": {

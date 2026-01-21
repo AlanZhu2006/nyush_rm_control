@@ -62,20 +62,20 @@ void ChassisInit()
         .can_init_config.can_handle = &hcan1,
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp = 10, // 4.5
-                .Ki = 0,  // 0
-                .Kd = 0,  // 0
-                .IntegralLimit = 3000,
+                .Kp = CHASSIS_SPEED_PID_KP,
+                .Ki = CHASSIS_SPEED_PID_KI,
+                .Kd = CHASSIS_SPEED_PID_KD,
+                .IntegralLimit = CHASSIS_SPEED_PID_INT_LIMIT,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-                .MaxOut = 12000,
+                .MaxOut = CHASSIS_SPEED_PID_MAX_OUT,
             },
             .current_PID = {
-                .Kp = 0.5, // 0.4
-                .Ki = 0,   // 0
-                .Kd = 0,
-                .IntegralLimit = 3000,
+                .Kp = CHASSIS_CURRENT_PID_KP,
+                .Ki = CHASSIS_CURRENT_PID_KI,
+                .Kd = CHASSIS_CURRENT_PID_KD,
+                .IntegralLimit = CHASSIS_CURRENT_PID_INT_LIMIT,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-                .MaxOut = 15000,
+                .MaxOut = CHASSIS_CURRENT_PID_MAX_OUT,
             },
         },
         .controller_setting_init_config = {
@@ -150,6 +150,13 @@ static void MecanumCalculate()
     vt_lb = chassis_vx - chassis_vy - chassis_cmd_recv.wz * LB_CENTER;
     vt_rb = chassis_vx + chassis_vy - chassis_cmd_recv.wz * RB_CENTER;
 }
+
+#if defined(CHASSIS_TYPE_SWERVE)
+static void SwerveCalculate()
+{
+    MecanumCalculate();
+}
+#endif
 
 /**
  * @brief 根据裁判系统和电容剩余容量对输出进行限制并设置电机参考值
@@ -232,7 +239,11 @@ void ChassisTask()
     chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
 
     // 根据控制模式进行正运动学解算,计算底盘输出
+#if defined(CHASSIS_TYPE_MECANUM)
     MecanumCalculate();
+#elif defined(CHASSIS_TYPE_SWERVE)
+    SwerveCalculate();
+#endif
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
     LimitChassisOutput();
