@@ -95,7 +95,7 @@ static void CheckName(char* name)
 
 包含一个结构图和四个流程图。
 
-### Message Center的结构![image-20221201150945052](../../.assets/image-20221201150945052.png)
+### Message Center的结构![image-20221201150945052](../../assets/image-20221201150945052.png)
 
 <center>建议打开原图查看</center>
 
@@ -111,19 +111,19 @@ static void CheckName(char* name)
 
   遍历发布者的话题结点，如果发现相同的话题，直接返回指针即可；遍历完成后发现尚未创建则创建新的话题。
 
-<img src="../../.assets/image-20221201152530558.png" alt="image-20221201152530558" style="zoom: 80%;" />
+<img src="../../assets/image-20221201152530558.png" alt="image-20221201152530558" style="zoom: 80%;" />
 
 - **订阅者：**
 
   需要注意，由于不同应用/模块的初始化顺序不同，可能出现订阅者先于发布者订阅某一消息的情况，所以要进行发布者链表的遍历，判断是否已经存在相同话题名的发布者，不存在则要先创建发布者结点再将新建订阅者结点并挂载到前者上。
 
-<img src="../../.assets/image-20221201152904044.png" alt="image-20221201152904044" style="zoom:80%;" />
+<img src="../../assets/image-20221201152904044.png" alt="image-20221201152904044" style="zoom:80%;" />
 
 ### 推送/获取消息的流程
 
 - **数组+头尾索引模拟队列**
 
-<img src="../../.assets/image-20221201155228196.png" alt="image-20221201155228196" style="zoom: 71%;" />
+<img src="../../assets/image-20221201155228196.png" alt="image-20221201155228196" style="zoom: 71%;" />
 
 front指向队列头，即最早入队的数据；back指向队列尾，即最新的数据。队列是first in first out（FIFO，先进先出）的结构。back指向的位置是入队数据被写入的位置，front指向的是读取时会出队的位置。当有数据入队，back++；出队则front++。若碰到数组边界，则返回数组头，可以通过取模实现：
 

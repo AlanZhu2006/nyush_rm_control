@@ -1,10 +1,8 @@
-# Multi-Platform Setup Guide for Basic Framework
-
-> Complete guide to set up the development environment for compiling and flashing STM32 firmware on Windows, macOS, and Linux.
+# Setup Guide for Basic Framework
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [System Requirements](#system-requirements)
 - [Quick Start by Platform](#quick-start-by-platform)
@@ -18,13 +16,13 @@
 
 ---
 
-## 🖥️ System Requirements
+## System Requirements
 
 ### Common Requirements (All Platforms)
-- **VSCode** (latest version recommended)
-- **ARM GNU Toolchain** (v10.3 or later)
+- **VSCode**(latest version recommended)
+- **ARM GNU Toolchain**(v10.3 or later)
 - **Make** build tool
-- **OpenOCD** (v0.11 or later) for debugging/flashing
+- **OpenOCD**(v0.11 or later) for debugging/flashing
 - **DFU-Util** for USB flashing (recommended)
 
 ### Hardware Requirements
@@ -32,11 +30,9 @@
 - USB cable for programming
 - Optional: Debug probe (DAP-Link, ST-Link, or J-Link)
 
----
 
-## 🚀 Quick Start by Platform
+## Quick Start by Platform
 
----
 
 ## macOS Setup
 
@@ -64,16 +60,16 @@ Download from [code.visualstudio.com](https://code.visualstudio.com/)
 
 ### Step 4: Install Required VSCode Extensions
 Open VSCode and install:
-- **C/C++** (Microsoft)
-- **Cortex-Debug** (marus25)
+- **C/C++**(Microsoft)
+- **Cortex-Debug**(marus25)
 - **Cortex-Debug: Device Support Pack - STM32F4**
-- **Makefile Tools** (Microsoft)
+- **Makefile Tools**(Microsoft)
 
 ### Step 5: Clone and Open Project
 ```bash
 cd ~/your-workspace
-git clone <repository-url>
-cd basic_framework
+git clone https://github.com/NYUSH-Robotics-Club/nyush-rm-control.git
+cd nyush-rm-control
 code .
 ```
 
@@ -86,9 +82,7 @@ make -j12
 ls -lh build/
 ```
 
-**✅ macOS setup complete!** The current configuration is already optimized for macOS.
-
----
+**macOS setup complete!** The current configuration is already optimized for macOS.
 
 ## Windows Setup
 
@@ -97,7 +91,7 @@ ls -lh build/
 1. **Download MSYS2**
    - Visit: https://www.msys2.org/
    - Download the installer (msys2-x86_64-*.exe)
-   - Install to default location: `C:\msys64`
+   - Install to default location (do not change it): `C:\msys64`
 
 2. **Launch MSYS2 MSYS**
    - Find "MSYS2 MSYS" in Start Menu
@@ -131,18 +125,18 @@ Press Enter when prompted to select all packages.
    - Click "Edit the system environment variables"
    - Click "Environment Variables" button
 
-2. Edit **Path** variable:
+2. Edit **Path**variable:
    - In "System variables" section, find "Path"
    - Click "Edit"
    - Click "New"
    - Add: `C:\msys64\mingw64\bin`
    - Click "OK" on all dialogs
 
-3. **Restart Windows** (or at least restart VSCode)
+3. **Restart Windows**(or at least restart VSCode)
 
 ### Step 4: Verify Installation
 
-Open **Command Prompt** (not MSYS2) and verify:
+Open **Command Prompt**(not MSYS2) and verify:
 
 ```cmd
 arm-none-eabi-gcc --version
@@ -160,10 +154,10 @@ Download from [code.visualstudio.com](https://code.visualstudio.com/)
 ### Step 6: Install VSCode Extensions
 
 Open VSCode and install:
-- **C/C++** (Microsoft)
-- **Cortex-Debug** (marus25)
+- **C/C++**(Microsoft)
+- **Cortex-Debug**(marus25)
 - **Cortex-Debug: Device Support Pack - STM32F4**
-- **Makefile Tools** (Microsoft)
+- **Makefile Tools**(Microsoft)
 
 ### Step 7: Configure VSCode Settings
 
@@ -177,8 +171,6 @@ Open your project in VSCode, then update `.vscode/settings.json`:
 }
 ```
 
-**⚠️ Important**: Adjust paths if you installed MSYS2 to a different location (e.g., `D:\msys2`).
-
 ### Step 8: Test Compilation
 
 In VSCode terminal or Command Prompt:
@@ -190,9 +182,8 @@ mingw32-make -j12
 
 Or use VSCode shortcut: `Ctrl+Shift+B`
 
-**✅ Windows setup complete!**
+**Windows setup complete!**
 
----
 
 ## Linux Setup
 
@@ -246,14 +237,6 @@ sudo apt update
 sudo apt install code
 ```
 
-**Fedora:**
-```bash
-sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
-sudo sh -c 'echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/vscode.repo'
-sudo dnf check-update
-sudo dnf install code
-```
-
 ### Step 3: Install VSCode Extensions
 
 Same as macOS/Windows:
@@ -293,11 +276,10 @@ make -j12
 
 Or use VSCode: `Ctrl+Shift+B`
 
-**✅ Linux setup complete!**
+**Linux setup complete!**
 
----
 
-## 🛠️ VSCode Configuration
+## VSCode Configuration
 
 ### Project Structure
 
@@ -330,11 +312,10 @@ The `settings.json` automatically uses the correct paths based on your OS:
 }
 ```
 
-**No manual switching needed** - VSCode detects your OS automatically!
+**No manual switching needed**- VSCode detects your OS automatically!
 
----
 
-## 🔨 Compilation
+## Compilation
 
 ### Command Line
 
@@ -382,25 +363,25 @@ build/
 
 ---
 
-## 🔥 Flashing Methods
+## Flashing Methods
 
-The project supports 4 flashing methods. **DFU-Util is recommended** for cross-platform compatibility.
+The project supports 4 flashing methods. **DFU-Util is recommended**for cross-platform compatibility.
 
 ---
 
-### Method 1: DFU-Util (⭐ Recommended)
+### Method 1: DFU-Util (Recommended)
 
 **Advantages:**
-- ✅ Works on all platforms (Windows/Mac/Linux)
-- ✅ No external debugger required (USB cable only)
-- ✅ Fast and reliable
-- ✅ Built-in bootloader support
+-  Works on all platforms (Windows/Mac/Linux)
+-  No external debugger required (USB cable only)
+-  Fast and reliable
+-  Built-in bootloader support
 
 #### Entering DFU Mode
 
-1. **Press and hold** the **BOOT0** button on the board
-2. **Press and release** the **RESET** button
-3. **Release** the **BOOT0** button
+1. **Press and hold**the **BOOT0**button on the board
+2. **Press and release**the **RESET**button
+3. **Release**the **BOOT0**button
 
 The STM32 is now in DFU mode.
 
@@ -447,7 +428,7 @@ File downloaded successfully
 
 #### Exit DFU Mode
 
-Press **RESET** button on the board to start your application.
+Press **RESET**button on the board to start your application.
 
 #### Windows-Specific: DFU Driver Installation
 
@@ -460,13 +441,11 @@ If `dfu-util -l` doesn't detect the device:
    - Select "WinUSB" driver
    - Click "Replace Driver"
 
----
-
 ### Method 2: OpenOCD + DAP-Link
 
-**Hardware Required:** DAP-Link debugger (e.g., wireless debugger)
+**Hardware Required:**DAP-Link debugger (e.g., wireless debugger)
 
-**Configuration File:** `openocd_dap.cfg` (provided in project root)
+**Configuration File:**`openocd_dap.cfg` (provided in project root)
 
 #### Flash Command
 
@@ -490,14 +469,13 @@ Open On-Chip Debugger 0.12.0
 Warn : JTAG tap: stm32f4x.bs tap/device found: 0x06413041
 Info : stm32f4x.cpu: hardware has 6 breakpoints, 4 watchpoints
 ...
-** Programming Finished **
+**Programming Finished **
 ```
 
----
 
 ### Method 3: OpenOCD + ST-Link
 
-**Hardware Required:** ST-Link V2/V3 debugger
+**Hardware Required:**ST-Link V2/V3 debugger
 
 #### Flash Command
 
@@ -523,12 +501,12 @@ mingw32-make flash_stlink
 
 ### Method 4: J-Link
 
-**Hardware Required:** Segger J-Link debugger
+**Hardware Required:**Segger J-Link debugger
 
-**Software Required:** J-Link Software Package
+**Software Required:**J-Link Software Package
 - Download: https://www.segger.com/downloads/jlink/
 
-**Configuration File:** `stm32.jflash` (provided)
+**Configuration File:**`stm32.jflash` (provided)
 
 #### Flash Command
 
@@ -550,20 +528,8 @@ make flash_jlink
 - Requires JFlash executable in PATH
 - Fast programming speed
 
----
 
-### Comparison Table
-
-| Method | Hardware | Cross-Platform | Speed | Recommended |
-|--------|----------|----------------|-------|-------------|
-| **DFU-Util** | USB cable only | ✅ Excellent | ⚡ Fast | ⭐⭐⭐⭐⭐ |
-| **DAP-Link** | DAP debugger | ✅ Good | ⚡ Fast | ⭐⭐⭐⭐ |
-| **ST-Link** | ST-Link | ✅ Good | ⚡ Fast | ⭐⭐⭐⭐ |
-| **J-Link** | J-Link | ⚠️ Windows mainly | ⚡⚡ Very Fast | ⭐⭐⭐ |
-
----
-
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -597,7 +563,6 @@ where arm-none-eabi-gcc
 sudo apt install --reinstall gcc-arm-none-eabi
 ```
 
----
 
 #### Issue 2: "make: command not found" (Windows)
 
@@ -610,7 +575,6 @@ mingw32-make -j12
 
 Or use VSCode tasks which handle this automatically.
 
----
 
 #### Issue 3: DFU Device Not Detected
 
@@ -648,7 +612,6 @@ dfu-util -l
    - Go to System Preferences → Security & Privacy
    - Allow any blocked USB drivers
 
----
 
 #### Issue 4: OpenOCD Connection Failed
 
@@ -679,8 +642,6 @@ Error: unable to open ftdi device with vid 0403, pid 6014, description '*', seri
    openocd -f interface/stlink.cfg -f target/stm32f4x.cfg
    ```
 
----
-
 #### Issue 5: Compilation Warnings About _write, _read, etc.
 
 **Example:**
@@ -689,8 +650,6 @@ warning: _write is not implemented and will always fail
 ```
 
 **This is normal!** These warnings are expected for bare-metal embedded systems and can be safely ignored. They occur because standard I/O functions are not implemented in the embedded environment.
-
----
 
 #### Issue 6: VSCode Cannot Find Includes
 
@@ -715,11 +674,10 @@ warning: _write is not implemented and will always fail
 3. **Reload VSCode:**
    `Cmd/Ctrl+Shift+P` → "Developer: Reload Window"
 
----
 
 #### Issue 7: "Permission Denied" on macOS
 
-**Cause:** Security restrictions on downloaded binaries
+**Cause:**Security restrictions on downloaded binaries
 
 **Solution:**
 ```bash
@@ -730,8 +688,6 @@ sudo xattr -rd com.apple.quarantine /opt/homebrew/bin/dfu-util
 # Or for entire toolchain
 sudo xattr -rd com.apple.quarantine /opt/homebrew/Caskroom/gcc-arm-embedded
 ```
-
----
 
 #### Issue 8: Line Ending Issues (Windows ↔ Mac)
 
@@ -752,118 +708,13 @@ git rm --cached -r .
 git reset --hard
 ```
 
----
-
-### Getting Help
-
-If you encounter issues not covered here:
-
-1. **Check Documentation:**
-   - `跨平台配置指南.md` (Chinese detailed guide)
-   - `快速参考.md` (Quick reference)
-
-2. **Enable Verbose Output:**
-   ```bash
-   make V=1  # Show full compiler commands
-   ```
-
-3. **Check Tool Versions:**
-   ```bash
-   arm-none-eabi-gcc --version
-   openocd --version
-   dfu-util --version
-   make --version
-   ```
-
-4. **Create Issue:**
-   - Include your OS and versions
-   - Provide full error output
-   - Describe steps to reproduce
-
----
-
-## ✅ Verification Checklist
-
-After setup, verify everything works:
-
-- [ ] Toolchain installed and in PATH
-- [ ] `arm-none-eabi-gcc --version` shows version
-- [ ] `make help` (or `mingw32-make help`) shows commands
-- [ ] VSCode opens project without errors
-- [ ] `Cmd/Ctrl+Shift+B` compiles successfully
-- [ ] `build/` folder contains .elf, .hex, .bin files
-- [ ] DFU device detected: `dfu-util -l`
-- [ ] Successful flash with chosen method
-- [ ] Board runs firmware after reset
-
----
-
-## 📚 Additional Resources
-
-### Documentation
-- **Project README**: `README.md`
-- **Architecture Guide**: `.Doc/架构介绍与开发指南.md`
-- **VSCode + Ozone Guide**: `.Doc/VSCode+Ozone使用方法.md`
-- **Cross-Platform Guide**: `跨平台配置指南.md` (Chinese)
-- **Quick Reference**: `快速参考.md` (Chinese)
-
-### External Links
-- **ARM GNU Toolchain**: https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads
-- **OpenOCD**: https://openocd.org/
-- **DFU-Util**: https://dfu-util.sourceforge.net/
-- **MSYS2**: https://www.msys2.org/ (Windows)
-- **VSCode**: https://code.visualstudio.com/
-
-### Hardware
-- **STM32F4 Reference Manual**: Search "RM0090" on st.com
-- **Development Board**: RoboMaster Type C board documentation
-
----
-
-## 🎯 Quick Command Reference
-
-### Compilation
-```bash
-# macOS / Linux
-make -j12
-make clean
-make rebuild
-
-# Windows
-mingw32-make -j12
-mingw32-make clean
-mingw32-make rebuild
-```
-
-### Flashing
-```bash
-# macOS / Linux
-make flash_dfu      # DFU (recommended)
-make flash_dap      # DAP-Link
-make flash_stlink   # ST-Link
-make flash_jlink    # J-Link
-
-# Windows
-mingw32-make flash_dfu
-mingw32-make flash_dap
-mingw32-make flash_stlink
-mingw32-make flash_jlink
-```
-
-### VSCode Shortcuts
-- **Build**: `Cmd+Shift+B` (Mac) / `Ctrl+Shift+B` (Win/Linux)
-- **Tasks**: `Cmd+Shift+P` → "Tasks: Run Task"
-- **Debug**: `F5`
-
----
-
-## 🎉 Conclusion
+## Conclusion
 
 You now have a complete cross-platform development environment for STM32 firmware development!
 
 **Next Steps:**
 1. Configure robot parameters in `application/robot_def.h`
-2. Review framework documentation in `.Doc/` folder
+2. Review framework documentation in `docs/basic_framework/` folder
 3. Start developing your application!
 
 **Recommended Workflow:**
@@ -873,8 +724,3 @@ You now have a complete cross-platform development environment for STM32 firmwar
 4. Run `flash: dfu-util` task
 5. Press RESET to run firmware
 6. Debug with `F5` if needed
-
----
-
-*Last Updated: 2026-01-20*
-*Configured by Claude Code ✨*
