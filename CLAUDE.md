@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is **basic_framework**, an embedded control framework for RoboMaster competition robots developed by Hunan University YueLu RoboMaster team. The framework runs on STM32F407IGH6 MCU with FreeRTOS and provides a layered architecture for robot control systems (infantry, hero, sentry, balance infantry, etc.).
+This is the **NYUSH RoboMaster Control** firmware, based on Hunan University YueLu team's **basic_framework**. It's an embedded control framework for RoboMaster competition robots that runs on STM32F407IGH6 MCU with FreeRTOS and provides a layered architecture for robot control systems (infantry, hero, sentry, balance infantry, etc.).
 
 **Target Hardware:** STM32F407IGH6 (RoboMaster Type C Development Board)
 **RTOS:** FreeRTOS
@@ -65,7 +65,33 @@ make flash_stlink
 make flash_jlink        # Uses stm32.jflash config
 ```
 
+**5. STM32CubeProgrammer (GUI Alternative):**
+- GUI tool from STMicroelectronics
+- Supports DFU mode, ST-Link, and other programmers
+- See `docs/flashing-guide.md` for detailed step-by-step instructions with screenshots
+- Download: https://www.st.com/en/development-tools/stm32cubeprog.html
+
 **Build artifacts:** `build/basic_framework.{elf,hex,bin}`
+
+## Repository Information
+
+**Original Framework:** [HNUYueLuRM/basic_framework](https://github.com/HNUYueLuRM/basic_framework)
+**NYUSH Repository:** This is an adaptation by NYUSH Robotics Club
+**License:** MIT
+
+### Key Differences from Original
+- Added comprehensive English documentation in `docs/` (setup-guide.md, flashing-guide.md, can.md, github-commands.md)
+- Cross-platform build configuration tested on Mac/Windows/Linux
+- Enhanced VSCode tasks for platform detection
+- Additional troubleshooting guides
+
+### Updating from Upstream
+When the original framework receives updates, use:
+```bash
+git remote add upstream https://github.com/HNUYueLuRM/basic_framework.git
+git fetch upstream
+git cherry-pick <commit-hash>  # Selectively pull framework updates
+```
 
 ## Architecture
 
@@ -336,9 +362,13 @@ Detailed docs in `docs/basic_framework/`:
 - **`必须做&禁止做.md`** - Do's and don'ts
 - **`让VSCode成为更称手的IDE.md`** - VSCode productivity tips
 
-**Setup Guide:** `docs/SETUP_GUIDE.md` - Platform-specific installation (Mac/Windows/Linux)
+**NYUSH-Specific Guides:**
+- **`docs/setup-guide.md`** - Platform-specific installation (Mac/Windows/Linux)
+- **`docs/flashing-guide.md`** - Detailed firmware flashing instructions with images
+- **`docs/can.md`** - CAN bus communication protocol for GM6020 and C620 motors
+- **`docs/github-commands.md`** - Git workflow reference for team collaboration
 
-**Framework Tutorial Videos:** [bilibili collection](https://space.bilibili.com/522795884/channel/collectiondetail)
+**Framework Tutorial Videos:** [bilibili collection](https://space.bilibili.com/522795884/channel/collectiondetail) (from original HNU team)
 
 ## Dependencies
 
@@ -369,13 +399,31 @@ Detailed docs in `docs/basic_framework/`:
 
 **Math Library:** Links against CMSIS-DSP for optimized ARM math functions
 
+## Common Issues and Quick Fixes
+
+### Build Issues
+- **"arm-none-eabi-gcc: command not found"**: Toolchain not in PATH. See `docs/setup-guide.md` for platform-specific installation.
+- **"make: command not found" (Windows)**: Use `mingw32-make` instead of `make`.
+- **Warnings about `_write`, `_read`, etc.**: Normal for bare-metal embedded systems, can be ignored.
+
+### Flashing Issues
+- **DFU device not found**: Ensure you entered DFU mode correctly (Hold BOOT0 → Press RESET → Release BOOT0). On Windows, may need DFU drivers via Zadig. See `docs/flashing-guide.md`.
+- **OpenOCD connection failed**: Check debugger wiring (SWDIO, SWCLK, GND) and USB permissions (Linux).
+- **Board not responding after flash**: Press RESET button and ensure BOOT0 jumper is removed.
+
+### Platform-Specific
+- **macOS "Permission Denied"**: Remove quarantine attribute: `sudo xattr -rd com.apple.quarantine /opt/homebrew/bin/openocd`
+- **Windows path issues**: Ensure `C:\msys64\mingw64\bin` is in system PATH.
+- **Linux USB permissions**: Add udev rules for STM32 devices (see `docs/setup-guide.md`).
+
 ## Notes for Claude Code
 
 - When modifying robot parameters, always check `application/robot_def.h` first
 - Pay attention to board configuration macros - incorrect settings can cause runtime issues
 - Motor CAN IDs are configured in app initialization, not centralized
-- Vision communication uses either VCP (USB) or UART - check `VISION_USE_*` macro
+- Vision communication uses either VCP (USB) or UART - check `VISION_USE_*` macro in `robot_def.h`
 - FreeRTOS heap/stack sizes are in CubeMX config - regenerate if tasks need more memory
 - Use `message_center` for all inter-app data exchange (enforced design pattern)
 - All angles use radians internally unless explicitly stated otherwise
 - When reading/modifying control loops, note the task frequency requirements
+- The Chinese documentation in `docs/basic_framework/` is the authoritative source for framework internals
