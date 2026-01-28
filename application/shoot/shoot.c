@@ -6,7 +6,7 @@
 #include "bsp_dwt.h"
 #include "general_def.h"
 
-#define DISABLE_SHOOT_MOTORS 1
+#define DISABLE_SHOOT_MOTORS 0
 /* 对于双发射机构的机器人,将下面的数据封装成结构体即可,生成两份shoot应用实例 */
 static DJIMotorInstance *friction_l, *friction_r, *loader; // 拨盘电机
 // static servo_instance *lid; 需要增加弹舱盖
@@ -27,7 +27,7 @@ void ShootInit()
     // 左摩擦轮
     Motor_Init_Config_s friction_config = {
         .can_init_config = {
-            .can_handle = &hcan2,
+            .can_handle = &SHOOT_CAN_BUS,
         },
         .controller_param_init_config = {
             .speed_PID = {
@@ -56,18 +56,18 @@ void ShootInit()
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL,
         },
         .motor_type = M3508};
-    friction_config.can_init_config.tx_id = 1,
+    friction_config.can_init_config.tx_id = SHOOT_FRICTION_L_ID,
     friction_l = DJIMotorInit(&friction_config);
 
-    friction_config.can_init_config.tx_id = 2; // 右摩擦轮,改txid和方向就行
-    friction_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
+    friction_config.can_init_config.tx_id = SHOOT_FRICTION_R_ID; // 右摩擦轮,改txid
+    friction_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL; // 与左摩擦轮同向
     friction_r = DJIMotorInit(&friction_config);
 
     // 拨盘电机
     Motor_Init_Config_s loader_config = {
         .can_init_config = {
-            .can_handle = &hcan2,
-            .tx_id = 3,
+            .can_handle = &SHOOT_CAN_BUS,
+            .tx_id = SHOOT_LOADER_ID,
         },
         .controller_param_init_config = {
             .angle_PID = {

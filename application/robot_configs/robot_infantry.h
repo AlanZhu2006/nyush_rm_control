@@ -14,9 +14,9 @@
 
 /* 机器人重要参数定义,注意根据不同机器人进行修改,浮点数需要以.0或f结尾,无符号以u结尾 */
 // 云台参数
-#define YAW_CHASSIS_ALIGN_ECD 2711  // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
+#define YAW_CHASSIS_ALIGN_ECD 2183  // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改 (Calibrated 2025-12-25)
 #define YAW_ECD_GREATER_THAN_4096 0 // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
-#define PITCH_HORIZON_ECD 3412      // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
+#define PITCH_HORIZON_ECD 3370      // 云台处于水平位置时编码器值,若对云台有机械改动需要修改 (Calibrated 2025-12-25)
 #define PITCH_MAX_ANGLE 0           // 云台竖直方向最大角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
 #define PITCH_MIN_ANGLE 0           // 云台竖直方向最小角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
 // 发射参数
@@ -34,6 +34,25 @@
 #define GYRO2GIMBAL_DIR_YAW 1   // 陀螺仪数据相较于云台的yaw的方向,1为相同,-1为相反
 #define GYRO2GIMBAL_DIR_PITCH 1 // 陀螺仪数据相较于云台的pitch的方向,1为相同,-1为相反
 #define GYRO2GIMBAL_DIR_ROLL 1  // 陀螺仪数据相较于云台的roll的方向,1为相同,-1为相反
+
+// 底盘电机CAN配置
+#define CHASSIS_CAN_BUS hcan1
+#define CHASSIS_MOTOR_LF_ID 1  // 左前
+#define CHASSIS_MOTOR_RF_ID 2  // 右前
+#define CHASSIS_MOTOR_LB_ID 4  // 左后
+#define CHASSIS_MOTOR_RB_ID 3  // 右后
+
+// 云台电机CAN配置
+#define GIMBAL_YAW_CAN_BUS hcan1
+#define GIMBAL_YAW_MOTOR_ID 6
+#define GIMBAL_PITCH_CAN_BUS hcan2
+#define GIMBAL_PITCH_MOTOR_ID 7
+
+// 发射机构电机CAN配置
+#define SHOOT_CAN_BUS hcan2
+#define SHOOT_FRICTION_L_ID 5  // 左摩擦轮 (CAN RX 0x206)
+#define SHOOT_FRICTION_R_ID 8  // 右摩擦轮 (CAN RX 0x208)
+#define SHOOT_LOADER_ID 3      // 拨盘
 
 // PID参数 - 底盘
 #define CHASSIS_SPEED_PID_KP 10.0f

@@ -6,7 +6,7 @@
 #include "general_def.h"
 #include "bmi088.h"
 
-#define DISABLE_GIMBAL_MOTORS 1
+#define DISABLE_GIMBAL_MOTORS 0
 static attitude_t *gimba_IMU_data; // 云台IMU数据
 static DJIMotorInstance *yaw_motor, *pitch_motor;
 
@@ -25,8 +25,8 @@ void GimbalInit()
     // YAW
     Motor_Init_Config_s yaw_config = {
         .can_init_config = {
-            .can_handle = &hcan1,
-            .tx_id = 1,
+            .can_handle = &GIMBAL_YAW_CAN_BUS,
+            .tx_id = GIMBAL_YAW_MOTOR_ID,
         },
         .controller_param_init_config = {
             .angle_PID = {
@@ -62,8 +62,8 @@ void GimbalInit()
     // PITCH
     Motor_Init_Config_s pitch_config = {
         .can_init_config = {
-            .can_handle = &hcan2,
-            .tx_id = 2,
+            .can_handle = &GIMBAL_PITCH_CAN_BUS,
+            .tx_id = GIMBAL_PITCH_MOTOR_ID,
         },
         .controller_param_init_config = {
             .angle_PID = {

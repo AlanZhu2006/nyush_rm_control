@@ -35,6 +35,25 @@
 #define GYRO2GIMBAL_DIR_PITCH 1 // 陀螺仪数据相较于云台的pitch的方向,1为相同,-1为相反
 #define GYRO2GIMBAL_DIR_ROLL 1  // 陀螺仪数据相较于云台的roll的方向,1为相同,-1为相反
 
+// 底盘电机CAN配置
+#define CHASSIS_CAN_BUS hcan1
+#define CHASSIS_MOTOR_LF_ID 1  // 左前
+#define CHASSIS_MOTOR_RF_ID 2  // 右前
+#define CHASSIS_MOTOR_LB_ID 4  // 左后
+#define CHASSIS_MOTOR_RB_ID 3  // 右后
+
+// 云台电机CAN配置
+#define GIMBAL_YAW_CAN_BUS hcan1
+#define GIMBAL_YAW_MOTOR_ID 6
+#define GIMBAL_PITCH_CAN_BUS hcan2
+#define GIMBAL_PITCH_MOTOR_ID 7
+
+// 发射机构电机CAN配置
+#define SHOOT_CAN_BUS hcan2
+#define SHOOT_FRICTION_L_ID 1  // 左摩擦轮
+#define SHOOT_FRICTION_R_ID 2  // 右摩擦轮
+#define SHOOT_LOADER_ID 3      // 拨盘
+
 // PID参数 - 底盘
 #define CHASSIS_SPEED_PID_KP 10.0f
 #define CHASSIS_SPEED_PID_KI 0.0f
