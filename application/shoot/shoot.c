@@ -6,6 +6,7 @@
 #include "bsp_dwt.h"
 #include "general_def.h"
 
+#define DISABLE_SHOOT_MOTORS 1
 /* 对于双发射机构的机器人,将下面的数据封装成结构体即可,生成两份shoot应用实例 */
 static DJIMotorInstance *friction_l, *friction_r, *loader; // 拨盘电机
 // static servo_instance *lid; 需要增加弹舱盖
@@ -20,6 +21,9 @@ static float hibernate_time = 0, dead_time = 0;
 
 void ShootInit()
 {
+#if DISABLE_SHOOT_MOTORS
+    return;
+#endif
     // 左摩擦轮
     Motor_Init_Config_s friction_config = {
         .can_init_config = {
@@ -107,6 +111,9 @@ void ShootInit()
 /* 机器人发射机构控制核心任务 */
 void ShootTask()
 {
+#if DISABLE_SHOOT_MOTORS
+    return;
+#endif
     // 从cmd获取控制数据
     SubGetMessage(shoot_sub, &shoot_cmd_recv);
 

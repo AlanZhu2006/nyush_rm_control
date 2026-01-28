@@ -6,6 +6,7 @@
 #include "general_def.h"
 #include "bmi088.h"
 
+#define DISABLE_GIMBAL_MOTORS 1
 static attitude_t *gimba_IMU_data; // 云台IMU数据
 static DJIMotorInstance *yaw_motor, *pitch_motor;
 
@@ -16,7 +17,10 @@ static Gimbal_Ctrl_Cmd_s gimbal_cmd_recv;         // 来自cmd的控制信息
 
 // static BMI088Instance *bmi088; // 云台IMU
 void GimbalInit()
-{   
+{
+#if DISABLE_GIMBAL_MOTORS
+    return;
+#endif
     gimba_IMU_data = INS_Init(); // IMU先初始化,获取姿态数据指针赋给yaw电机的其他数据来源
     // YAW
     Motor_Init_Config_s yaw_config = {
@@ -102,6 +106,9 @@ void GimbalInit()
 /* 机器人云台控制核心任务,后续考虑只保留IMU控制,不再需要电机的反馈 */
 void GimbalTask()
 {
+#if DISABLE_GIMBAL_MOTORS
+    return;
+#endif
     // 获取云台控制数据
     // 后续增加未收到数据的处理
     SubGetMessage(gimbal_sub, &gimbal_cmd_recv);
