@@ -14,6 +14,7 @@
 #include "daemon.h"
 #include "HT04.h"
 #include "buzzer.h"
+#include "led.h"
 
 #include "bsp_log.h"
 
@@ -101,6 +102,7 @@ __attribute__((noreturn)) void StartDAEMONTASK(void const *argument)
         daemon_start = DWT_GetTimeline_ms();
         DaemonTask();
         BuzzerTask();
+        LEDTask();
         daemon_dt = DWT_GetTimeline_ms() - daemon_start;
         if (daemon_dt > 10)
             LOGERROR("[freeRTOS] Daemon Task is being DELAY! dt = [%f]", &daemon_dt);

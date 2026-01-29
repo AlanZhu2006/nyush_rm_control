@@ -19,6 +19,7 @@
 #include "user_lib.h"
 #include "general_def.h"
 #include "master_process.h"
+#include "led.h"
 
 static INS_t INS;
 static IMU_Param_t IMU_Param;
@@ -112,6 +113,10 @@ attitude_t *INS_Init(void)
     // noise of accel is relatively big and of high freq,thus lpf is used
     INS.AccelLPF = 0.0085;
     DWT_GetDeltaT(&INS_DWT_Count);
+
+    // IMU初始化成功，设置绿灯常亮
+    LEDSetStatus(LED_STATUS_GREEN_ON);
+
     return (attitude_t *)&INS.Gyro; // @todo: 这里偷懒了,不要这样做! 修改INT_t结构体可能会导致异常,待修复.
 }
 
