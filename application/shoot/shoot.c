@@ -182,18 +182,18 @@ void ShootTask()
         switch (shoot_cmd_recv.bullet_speed)
         {
         case SMALL_AMU_15:
-            DJIMotorSetRef(friction_l, 0);
-            DJIMotorSetRef(friction_r, 0);
+            DJIMotorSetRef(friction_l, 20000);
+            DJIMotorSetRef(friction_r, 20000);
             break;
         case SMALL_AMU_18:
-            DJIMotorSetRef(friction_l, 0);
-            DJIMotorSetRef(friction_r, 0);
+            DJIMotorSetRef(friction_l, 25000);
+            DJIMotorSetRef(friction_r, 25000);
             break;
         case SMALL_AMU_30:
-            DJIMotorSetRef(friction_l, 0);
-            DJIMotorSetRef(friction_r, 0);
+            DJIMotorSetRef(friction_l, 30000);
+            DJIMotorSetRef(friction_r, 30000);
             break;
-        default: // 当前为了调试设定的默认值4000,因为还没有加入裁判系统无法读取弹速.
+        default: // 当前为了调试设定的默认值30000,因为还没有加入裁判系统无法读取弹速.
             DJIMotorSetRef(friction_l, 30000);
             DJIMotorSetRef(friction_r, 30000);
             break;
