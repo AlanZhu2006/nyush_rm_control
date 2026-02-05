@@ -182,12 +182,12 @@ void ShootTask()
         switch (shoot_cmd_recv.bullet_speed)
         {
         case SMALL_AMU_15:
-            DJIMotorSetRef(friction_l, 20000);
-            DJIMotorSetRef(friction_r, 20000);
+            DJIMotorSetRef(friction_l, 30000);
+            DJIMotorSetRef(friction_r, 30000);
             break;
         case SMALL_AMU_18:
-            DJIMotorSetRef(friction_l, 25000);
-            DJIMotorSetRef(friction_r, 25000);
+            DJIMotorSetRef(friction_l, 30000);
+            DJIMotorSetRef(friction_r, 30000);
             break;
         case SMALL_AMU_30:
             DJIMotorSetRef(friction_l, 30000);
