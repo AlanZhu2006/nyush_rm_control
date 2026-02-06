@@ -53,14 +53,14 @@ void ShootInit()
 
             .outer_loop_type = SPEED_LOOP,
             .close_loop_type = SPEED_LOOP | CURRENT_LOOP,
-            .motor_reverse_flag = MOTOR_DIRECTION_NORMAL,
+            .motor_reverse_flag = SHOOT_FRICTION_L_REVERSE,
         },
         .motor_type = M3508};
     friction_config.can_init_config.tx_id = SHOOT_FRICTION_L_ID,
     friction_l = DJIMotorInit(&friction_config);
 
     friction_config.can_init_config.tx_id = SHOOT_FRICTION_R_ID; // 右摩擦轮,改txid
-    friction_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL; // 与左摩擦轮同向
+    friction_config.controller_setting_init_config.motor_reverse_flag = SHOOT_FRICTION_R_REVERSE;
     friction_r = DJIMotorInit(&friction_config);
 
     // 拨盘电机
@@ -98,7 +98,7 @@ void ShootInit()
             .angle_feedback_source = MOTOR_FEED, .speed_feedback_source = MOTOR_FEED,
             .outer_loop_type = SPEED_LOOP, // 初始化成SPEED_LOOP,让拨盘停在原地,防止拨盘上电时乱转
             .close_loop_type = CURRENT_LOOP | SPEED_LOOP,
-            .motor_reverse_flag = MOTOR_DIRECTION_NORMAL, // 注意方向设置为拨盘的拨出的击发方向
+            .motor_reverse_flag = SHOOT_LOADER_REVERSE, // 注意方向设置为拨盘的拨出的击发方向
         },
         .motor_type = M2006 // 英雄使用m3508
     };
