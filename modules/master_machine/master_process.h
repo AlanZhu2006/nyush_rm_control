@@ -4,8 +4,28 @@
 #include "bsp_usart.h"
 #include "seasky_protocol.h"
 
-#define VISION_RECV_SIZE 18u // 当前为固定值,36字节
+#define VISION_RECV_SIZE 18u // 当前为固定值,18字节(2 floats + flags + header/tail)
 #define VISION_SEND_SIZE 36u
+
+// flags_register bit layout (LSB -> MSB)
+// [1:0]  fire_mode
+// [3:2]  target_state
+// [7:4]  target_type
+// [9:8]  enemy_color
+// [11:10] work_mode
+// [15:12] bullet_speed_code
+#define VISION_FLAG_FIRE_MODE_SHIFT 0
+#define VISION_FLAG_FIRE_MODE_MASK  0x0003
+#define VISION_FLAG_TARGET_STATE_SHIFT 2
+#define VISION_FLAG_TARGET_STATE_MASK  0x000C
+#define VISION_FLAG_TARGET_TYPE_SHIFT 4
+#define VISION_FLAG_TARGET_TYPE_MASK  0x00F0
+#define VISION_FLAG_ENEMY_COLOR_SHIFT 8
+#define VISION_FLAG_ENEMY_COLOR_MASK  0x0300
+#define VISION_FLAG_WORK_MODE_SHIFT 10
+#define VISION_FLAG_WORK_MODE_MASK  0x0C00
+#define VISION_FLAG_BULLET_SPEED_SHIFT 12
+#define VISION_FLAG_BULLET_SPEED_MASK  0xF000
 
 #pragma pack(1)
 typedef enum
@@ -43,6 +63,7 @@ typedef struct
 
 	float pitch;
 	float yaw;
+	uint8_t new_data; // set by decode callback, cleared after cmd processes it
 } Vision_Recv_s;
 
 typedef enum
