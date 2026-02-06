@@ -65,6 +65,13 @@
 #define SHOOT_FRICTION_R_REVERSE MOTOR_DIRECTION_NORMAL  // 与左摩擦轮同向
 #define SHOOT_LOADER_REVERSE MOTOR_DIRECTION_NORMAL
 
+// 底盘运动参数
+#define CHASSIS_ROTATE_SPEED 4000.0f  // 小陀螺模式旋转速度
+#define CHASSIS_RC_MOVE_RATIO_X 10.0f // 遥控器模式底盘前后移动速度系数
+#define CHASSIS_RC_MOVE_RATIO_Y 10.0f // 遥控器模式底盘左右移动速度系数
+#define CHASSIS_KB_MOVE_SPEED_X 300.0f // 键鼠模式底盘前后移动速度
+#define CHASSIS_KB_MOVE_SPEED_Y 300.0f // 键鼠模式底盘左右移动速度
+
 // PID参数 - 底盘
 #define CHASSIS_SPEED_PID_KP 10.0f
 #define CHASSIS_SPEED_PID_KI 0.0f
