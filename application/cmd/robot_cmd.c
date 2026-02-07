@@ -16,6 +16,10 @@
 // 私有宏,自动将编码器转换成角度值
 #define YAW_ALIGN_ANGLE (YAW_CHASSIS_ALIGN_ECD * ECD_ANGLE_COEF_DJI) // 对齐时的角度,0-360
 #define PTICH_HORIZON_ANGLE (PITCH_HORIZON_ECD * ECD_ANGLE_COEF_DJI) // pitch水平时电机的角度,0-360
+#define VISION_YAW_GAIN 1.0f
+#define VISION_PITCH_GAIN 1.0f
+#define VISION_RAD_TO_DEG 57.295779513f
+#define VISION_SEND_DIV 10u // 200Hz / 10 = 20Hz
 
 /* cmd应用包含的模块实例指针和交互信息存储*/
 #ifdef GIMBAL_BOARD // 对双板的兼容,条件编译
@@ -168,8 +172,15 @@ static void RemoteControlSet()
     // 云台参数,确定云台控制数据
     if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[中],视觉模式
     {
-        // 待添加,视觉会发来和目标的误差,同样将其转化为total angle的增量进行控制
-        // ...
+        // accumulate offset on new vision data
+        if (vision_recv_data->target_state != NO_TARGET && vision_recv_data->new_data)
+        {
+            float vision_yaw = vision_recv_data->yaw;
+            float vision_pitch = vision_recv_data->pitch;
+            vision_recv_data->new_data = 0;
+            gimbal_cmd_send.yaw += VISION_YAW_GAIN * vision_yaw * VISION_RAD_TO_DEG;
+            gimbal_cmd_send.pitch += VISION_PITCH_GAIN * vision_pitch * VISION_RAD_TO_DEG;
+        }
     }
     // 左侧开关状态为[下],或视觉未识别到目标,纯遥控器拨杆控制
     if (switch_is_down(rc_data[TEMP].rc.switch_left) || vision_recv_data->target_state == NO_TARGET)
@@ -319,6 +330,7 @@ static void EmergencyHandler()
 /* 机器人核心控制任务,200Hz频率运行(必须高于视觉发送频率) */
 void RobotCMDTask()
 {
+    static uint32_t vision_send_tick = 0;
    // BMI088Acquire(bmi088_test,&bmi088_data) ;
     // 从其他应用获取回传数据
 #ifdef ONE_BOARD
@@ -333,7 +345,7 @@ void RobotCMDTask()
     // 根据gimbal的反馈值计算云台和底盘正方向的夹角,不需要传参,通过static私有变量完成
     CalcOffsetAngle();
     // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
-    if (switch_is_down(rc_data[TEMP].rc.switch_left)) // 遥控器左侧开关状态为[下],遥控器控制
+    if (switch_is_down(rc_data[TEMP].rc.switch_left) || switch_is_mid(rc_data[TEMP].rc.switch_left))
         RemoteControlSet();
     else if (switch_is_up(rc_data[TEMP].rc.switch_left)) // 遥控器左侧开关状态为[上],键盘控制
         MouseKeySet();
@@ -341,7 +353,13 @@ void RobotCMDTask()
     EmergencyHandler(); // 处理模块离线和遥控器急停等紧急情况
 
     // 设置视觉发送数据,还需增加加速度和角速度数据
-    // VisionSetFlag(chassis_fetch_data.enemy_color,,chassis_fetch_data.bullet_speed)
+    VisionSetFlag(chassis_fetch_data.enemy_color, VISION_MODE_AIM, chassis_fetch_data.bullet_speed);
+    vision_send_tick++;
+    if (vision_send_tick >= VISION_SEND_DIV)
+    {
+        vision_send_tick = 0;
+        VisionSend();
+    }
 
     // 推送消息,双板通信,视觉通信等
     // 其他应用所需的控制数据在remotecontrolsetmode和mousekeysetmode中完成设置

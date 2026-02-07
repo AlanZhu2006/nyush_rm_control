@@ -18,6 +18,46 @@ static Vision_Recv_s recv_data;
 static Vision_Send_s send_data;
 static DaemonInstance *vision_daemon_instance;
 
+static uint8_t BulletSpeedToCode(Bullet_Speed_e speed)
+{
+    switch (speed)
+    {
+    case BIG_AMU_10:
+        return 1;
+    case SMALL_AMU_15:
+        return 2;
+    case BIG_AMU_16:
+        return 3;
+    case SMALL_AMU_18:
+        return 4;
+    case SMALL_AMU_30:
+        return 5;
+    case BULLET_SPEED_NONE:
+    default:
+        return 0;
+    }
+}
+
+static void VisionDecodeFlags(uint16_t flags, Vision_Recv_s *out)
+{
+    if (!out)
+        return;
+    out->fire_mode = (Fire_Mode_e)((flags & VISION_FLAG_FIRE_MODE_MASK) >> VISION_FLAG_FIRE_MODE_SHIFT);
+    out->target_state = (Target_State_e)((flags & VISION_FLAG_TARGET_STATE_MASK) >> VISION_FLAG_TARGET_STATE_SHIFT);
+    out->target_type = (Target_Type_e)((flags & VISION_FLAG_TARGET_TYPE_MASK) >> VISION_FLAG_TARGET_TYPE_SHIFT);
+}
+
+static uint16_t VisionEncodeFlags(const Vision_Send_s *in)
+{
+    uint16_t flags = 0;
+    if (!in)
+        return flags;
+    flags |= (((uint16_t)in->enemy_color << VISION_FLAG_ENEMY_COLOR_SHIFT) & VISION_FLAG_ENEMY_COLOR_MASK);
+    flags |= (((uint16_t)in->work_mode << VISION_FLAG_WORK_MODE_SHIFT) & VISION_FLAG_WORK_MODE_MASK);
+    flags |= (((uint16_t)BulletSpeedToCode(in->bullet_speed) << VISION_FLAG_BULLET_SPEED_SHIFT) & VISION_FLAG_BULLET_SPEED_MASK);
+    return flags;
+}
+
 void VisionSetFlag(Enemy_Color_e enemy_color, Work_Mode_e work_mode, Bullet_Speed_e bullet_speed)
 {
     send_data.enemy_color = enemy_color;
@@ -62,8 +102,11 @@ static void DecodeVision()
 {
     uint16_t flag_register;
     DaemonReload(vision_daemon_instance); // 喂狗
-    get_protocol_info(vision_usart_instance->recv_buff, &flag_register, (uint8_t *)&recv_data.pitch);
-    // TODO: code to resolve flag_register;
+    if (get_protocol_info(vision_usart_instance->recv_buff, &flag_register, (uint8_t *)&recv_data.pitch))
+    {
+        VisionDecodeFlags(flag_register, &recv_data);
+        recv_data.new_data = 1;
+    }
 }
 
 Vision_Recv_s *VisionInit(UART_HandleTypeDef *_handle)
@@ -98,8 +141,7 @@ void VisionSend()
     static uint16_t flag_register;
     static uint8_t send_buff[VISION_SEND_SIZE];
     static uint16_t tx_len;
-    // TODO: code to set flag_register
-    flag_register = 30 << 8 | 0b00000001;
+    flag_register = VisionEncodeFlags(&send_data);
     // 将数据转化为seasky协议的数据包
     get_protocol_send_data(0x02, flag_register, &send_data.yaw, 3, send_buff, &tx_len);
     USARTSend(vision_usart_instance, send_buff, tx_len, USART_TRANSFER_DMA); // 和视觉通信使用IT,防止和接收使用的DMA冲突
@@ -118,8 +160,12 @@ static uint8_t *vis_recv_buff;
 static void DecodeVision(uint16_t recv_len)
 {
     uint16_t flag_register;
-    get_protocol_info(vis_recv_buff, &flag_register, (uint8_t *)&recv_data.pitch);
-    // TODO: code to resolve flag_register;
+    UNUSED(recv_len);
+    if (get_protocol_info(vis_recv_buff, &flag_register, (uint8_t *)&recv_data.pitch))
+    {
+        VisionDecodeFlags(flag_register, &recv_data);
+        recv_data.new_data = 1;
+    }
 }
 
 /* 视觉通信初始化 */
@@ -145,8 +191,7 @@ void VisionSend()
     static uint16_t flag_register;
     static uint8_t send_buff[VISION_SEND_SIZE];
     static uint16_t tx_len;
-    // TODO: code to set flag_register
-    flag_register = 30 << 8 | 0b00000001;
+    flag_register = VisionEncodeFlags(&send_data);
     // 将数据转化为seasky协议的数据包
     get_protocol_send_data(0x02, flag_register, &send_data.yaw, 3, send_buff, &tx_len);
     USBTransmit(send_buff, tx_len);

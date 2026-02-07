@@ -708,6 +708,26 @@ git rm --cached -r .
 git reset --hard
 ```
 
+## Vision Tool Setup
+
+The `scripts/vision_tool.py` script is an interactive tool for communicating with the MCU's vision system over USB (VCP). It requires Python 3 and `pyserial`.
+
+### Install Python dependency
+
+```bash
+pip install pyserial
+```
+
+### Run the tool
+
+```bash
+python scripts/vision_tool.py
+```
+
+The tool will auto-detect available serial ports and guide you through selecting a mode (Read or Write) interactively.
+
+---
+
 ## Conclusion
 
 You now have a complete cross-platform development environment for STM32 firmware development!
