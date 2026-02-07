@@ -63,7 +63,7 @@ typedef struct
 
 	float pitch;
 	float yaw;
-	uint8_t new_data; // set by decode callback, cleared after cmd processes it
+	volatile uint8_t new_data; // set by decode callback, cleared after cmd processes it
 } Vision_Recv_s;
 
 typedef enum

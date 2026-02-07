@@ -102,9 +102,11 @@ static void DecodeVision()
 {
     uint16_t flag_register;
     DaemonReload(vision_daemon_instance); // 喂狗
-    get_protocol_info(vision_usart_instance->recv_buff, &flag_register, (uint8_t *)&recv_data.pitch);
-    VisionDecodeFlags(flag_register, &recv_data);
-    recv_data.new_data = 1;
+    if (get_protocol_info(vision_usart_instance->recv_buff, &flag_register, (uint8_t *)&recv_data.pitch))
+    {
+        VisionDecodeFlags(flag_register, &recv_data);
+        recv_data.new_data = 1;
+    }
 }
 
 Vision_Recv_s *VisionInit(UART_HandleTypeDef *_handle)
@@ -159,9 +161,11 @@ static void DecodeVision(uint16_t recv_len)
 {
     uint16_t flag_register;
     UNUSED(recv_len);
-    get_protocol_info(vis_recv_buff, &flag_register, (uint8_t *)&recv_data.pitch);
-    VisionDecodeFlags(flag_register, &recv_data);
-    recv_data.new_data = 1;
+    if (get_protocol_info(vis_recv_buff, &flag_register, (uint8_t *)&recv_data.pitch))
+    {
+        VisionDecodeFlags(flag_register, &recv_data);
+        recv_data.new_data = 1;
+    }
 }
 
 /* 视觉通信初始化 */

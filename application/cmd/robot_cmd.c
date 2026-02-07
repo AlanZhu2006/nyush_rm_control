@@ -175,9 +175,11 @@ static void RemoteControlSet()
         // accumulate offset on new vision data
         if (vision_recv_data->target_state != NO_TARGET && vision_recv_data->new_data)
         {
+            float vision_yaw = vision_recv_data->yaw;
+            float vision_pitch = vision_recv_data->pitch;
             vision_recv_data->new_data = 0;
-            gimbal_cmd_send.yaw += VISION_YAW_GAIN * vision_recv_data->yaw * VISION_RAD_TO_DEG;
-            gimbal_cmd_send.pitch += VISION_PITCH_GAIN * vision_recv_data->pitch * VISION_RAD_TO_DEG;
+            gimbal_cmd_send.yaw += VISION_YAW_GAIN * vision_yaw * VISION_RAD_TO_DEG;
+            gimbal_cmd_send.pitch += VISION_PITCH_GAIN * vision_pitch * VISION_RAD_TO_DEG;
         }
     }
     // 左侧开关状态为[下],或视觉未识别到目标,纯遥控器拨杆控制

@@ -54,3 +54,5 @@ build
 *.jdebug*
 .claude/
 .cache/
+
+__pycache__/
