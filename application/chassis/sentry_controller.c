@@ -30,7 +30,6 @@ static Referee_Interactive_info_t ui_data;
 
 #define HALF_WHEEL_BASE   (WHEEL_BASE / 2.0f)
 #define HALF_TRACK_WIDTH  (TRACK_WIDTH / 2.0f)
-#define STEER_ECD_PER_REV 8192.0f
 #define STEER_DEG_TO_TICKS(deg) ((deg) * (STEER_ECD_PER_REV / 360.0f))
 
 static float chassis_vx, chassis_vy;
@@ -124,13 +123,14 @@ void SentryChassisInit(void)
             .speed_feedback_source = MOTOR_FEED,
             .outer_loop_type = ANGLE_LOOP,
             .close_loop_type = ANGLE_LOOP | SPEED_LOOP | CURRENT_LOOP,
-            .motor_reverse_flag = MOTOR_DIRECTION_NORMAL,
+            .motor_reverse_flag = STEER_MOTOR_A_REVERSE,
         },
         .motor_type = GM6020,
     };
     motor_steer_a = DJIMotorInit(&steer_config);
 
     steer_config.can_init_config.tx_id = STEER_MOTOR_B_ID;
+    steer_config.controller_setting_init_config.motor_reverse_flag = STEER_MOTOR_B_REVERSE;
     motor_steer_b = DJIMotorInit(&steer_config);
 
     referee_data = UITaskInit(&huart6, &ui_data);
@@ -208,8 +208,8 @@ void SentryChassisTask(void)
     float mag = sqrtf(vx_n * vx_n + vy_n * vy_n);
     if (mag > 1.0f) mag = 1.0f;
 
-    float cur_deg_a = DJIMotorGetTotalAngle(motor_steer_a);
-    float cur_deg_b = DJIMotorGetTotalAngle(motor_steer_b);
+    float cur_deg_a = motor_steer_a->measure.total_angle;
+    float cur_deg_b = motor_steer_b->measure.total_angle;
     float cur_ticks_a = STEER_DEG_TO_TICKS(cur_deg_a);
     float cur_ticks_b = STEER_DEG_TO_TICKS(cur_deg_b);
 
