@@ -17,8 +17,11 @@
 #define YAW_CHASSIS_ALIGN_ECD 2183  // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改 (Calibrated 2025-12-25)
 #define YAW_ECD_GREATER_THAN_4096 0 // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
 #define PITCH_HORIZON_ECD 3370      // 云台处于水平位置时编码器值,若对云台有机械改动需要修改 (Calibrated 2025-12-25)
-#define PITCH_MAX_ANGLE 0           // 云台竖直方向最大角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
-#define PITCH_MIN_ANGLE 0           // 云台竖直方向最小角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
+#define PITCH_MAX_ANGLE 10.0f       // 云台竖直方向最大角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度) - 向上抬头
+#define PITCH_MIN_ANGLE -20.0f      // 云台竖直方向最小角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度) - 向下低头
+#define GYRO2GIMBAL_DIR_YAW 1       // 陀螺仪数据相较于云台的yaw的方向,1为相同,-1为相反
+#define GYRO2GIMBAL_DIR_PITCH -1    // 陀螺仪数据相较于云台的pitch的方向,1为相同,-1为相反
+#define GYRO2GIMBAL_DIR_ROLL 1      // 陀螺仪数据相较于云台的roll的方向,1为相同,-1为相反
 // 发射参数
 #define ONE_BULLET_DELTA_ANGLE 36    // 发射一发弹丸拨盘转动的距离,由机械设计图纸给出
 #define REDUCTION_RATIO_LOADER 36.0f // 2006拨盘电机的减速比,英雄需要修改为3508的19.0f
