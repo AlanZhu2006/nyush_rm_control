@@ -246,7 +246,7 @@ flash_dap: $(BUILD_DIR)/$(TARGET).bin
 
 # OpenOCD + ST-Link烧录 (跨平台)
 flash_stlink: $(BUILD_DIR)/$(TARGET).elf
-	openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c "init; reset init; program $(BUILD_DIR)/$(TARGET).elf verify reset exit"
+	openocd -d1 -f interface/stlink.cfg -f target/stm32f4x.cfg -c "init; reset init; program $(BUILD_DIR)/$(TARGET).elf verify reset exit"
 
 # JLink烧录 (需要JFlash，主要Windows)
 flash_jlink: $(BUILD_DIR)/$(TARGET).hex
