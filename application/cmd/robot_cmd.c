@@ -6,6 +6,7 @@
 #include "ins_task.h"
 #include "master_process.h"
 #include "message_center.h"
+#include "radar_comm.h"
 #include "general_def.h"
 #include "dji_motor.h"
 #include "bmi088.h"
@@ -47,6 +48,11 @@ static Publisher_t *shoot_cmd_pub;           // 发射控制消息发布者
 static Subscriber_t *shoot_feed_sub;         // 发射反馈信息订阅者
 static Shoot_Ctrl_Cmd_s shoot_cmd_send;      // 传递给发射的控制信息
 static Shoot_Upload_Data_s shoot_fetch_data; // 从发射获取的反馈信息
+
+#ifdef ROBOT_TYPE_sentry
+static Radar_Recv_s *radar_data;             // 雷达数据指针（NUC/USB 发送的 vx,vy,wz）
+#define RADAR_VALID_MS 1000u                 // 雷达数据有效时间 (robomaster: 1000ms)
+#endif
 
 static Robot_Status_e robot_state; // 机器人整体工作状态
 
@@ -103,10 +109,22 @@ void RobotCMDInit()
     shoot_cmd_pub = PubRegister("shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
     shoot_feed_sub = SubRegister("shoot_feed", sizeof(Shoot_Upload_Data_s));
 
+#ifdef ROBOT_TYPE_sentry
+    radar_data = RadarComm_Init();
+#endif
+
 #ifdef ONE_BOARD // 双板兼容
     chassis_cmd_pub = PubRegister("chassis_cmd", sizeof(Chassis_Ctrl_Cmd_s));
     chassis_feed_sub = SubRegister("chassis_feed", sizeof(Chassis_Upload_Data_s));
 #endif // ONE_BOARD
+
+    // Initialize chassis_cmd_send to safe defaults
+    chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;  // Default: no follow, ready for control
+    chassis_cmd_send.vx = 0.0f;
+    chassis_cmd_send.vy = 0.0f;
+    chassis_cmd_send.wz = 0.0f;
+    chassis_cmd_send.offset_angle = 0.0f;
+    chassis_cmd_send.chassis_speed_buff = 0;
 #ifdef GIMBAL_BOARD
     CANComm_Init_Config_s comm_conf = {
         .can_config = {
@@ -167,6 +185,11 @@ static void RemoteControlSet()
     {
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
+    }
+    else if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上],底盘不跟随
+    {
+        chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+        gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
     }
 
     // 云台参数,确定云台控制数据
@@ -331,7 +354,9 @@ static void EmergencyHandler()
 void RobotCMDTask()
 {
     static uint32_t vision_send_tick = 0;
-   // BMI088Acquire(bmi088_test,&bmi088_data) ;
+#ifdef ROBOT_TYPE_sentry
+    RadarComm_Task();
+#endif
     // 从其他应用获取回传数据
 #ifdef ONE_BOARD
     SubGetMessage(chassis_feed_sub, (void *)&chassis_fetch_data);
@@ -349,6 +374,17 @@ void RobotCMDTask()
         RemoteControlSet();
     else if (switch_is_up(rc_data[TEMP].rc.switch_left)) // 遥控器左侧开关状态为[上],键盘控制
         MouseKeySet();
+
+#ifdef ROBOT_TYPE_sentry
+    if (radar_data && radar_data->valid &&
+        (HAL_GetTick() - radar_data->ts_ms <= RADAR_VALID_MS))
+    {
+        chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+        chassis_cmd_send.vx = radar_data->vx;
+        chassis_cmd_send.vy = radar_data->vy;
+        chassis_cmd_send.wz = radar_data->wz;
+    }
+#endif
 
     EmergencyHandler(); // 处理模块离线和遥控器急停等紧急情况
 

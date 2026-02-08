@@ -11,7 +11,11 @@
 #endif // !ROBOT_DEF_PARAM_WARNING
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)
+#ifdef ROBOT_TYPE_sentry
+#include "sentry_controller.h"  // Sentry uses dedicated swerve controller
+#else
 #include "chassis.h"
+#endif
 #endif
 
 #if defined(ONE_BOARD) || defined(GIMBAL_BOARD)
@@ -39,7 +43,11 @@ void RobotInit()
 #endif
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)
+#ifdef ROBOT_TYPE_sentry
+    SentryChassisInit();  // Use swerve controller for sentry
+#else
     ChassisInit();
+#endif
 #endif
 
     OSTaskInit(); // 创建基础任务
@@ -57,7 +65,11 @@ void RobotTask()
 #endif
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)
+#ifdef ROBOT_TYPE_sentry
+    SentryChassisTask();  // Use swerve controller for sentry
+#else
     ChassisTask();
+#endif
 #endif
 
 }
