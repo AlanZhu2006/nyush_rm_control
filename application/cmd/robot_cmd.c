@@ -13,10 +13,12 @@
 // bsp
 #include "bsp_dwt.h"
 #include "bsp_log.h"
+// std
+#include <math.h>
 
 // 私有宏,自动将编码器转换成角度值
 #define YAW_ALIGN_ANGLE (YAW_CHASSIS_ALIGN_ECD * ECD_ANGLE_COEF_DJI) // 对齐时的角度,0-360
-#define PTICH_HORIZON_ANGLE (PITCH_HORIZON_ECD * ECD_ANGLE_COEF_DJI) // pitch水平时电机的角度,0-360
+#define PITCH_HORIZON_ANGLE 0.0f  // pitch水平时的IMU角度(IMU域: -180~180)
 #define VISION_YAW_GAIN 1.0f
 #define VISION_PITCH_GAIN 1.0f
 #define VISION_RAD_TO_DEG 57.295779513f
@@ -58,6 +60,15 @@ static Robot_Status_e robot_state; // 机器人整体工作状态
 
 BMI088Instance *bmi088_test; // 云台IMU
 BMI088_Data_t bmi088_data;
+
+static inline void LimitPitchAngle_IMU(void)
+{
+    if (gimbal_cmd_send.pitch > PITCH_MAX_ANGLE)
+        gimbal_cmd_send.pitch = PITCH_MAX_ANGLE;
+    else if (gimbal_cmd_send.pitch < PITCH_MIN_ANGLE)
+        gimbal_cmd_send.pitch = PITCH_MIN_ANGLE;
+}
+
 void RobotCMDInit()
 {
     // BMI088_Init_Config_s bmi088_config = {
@@ -137,7 +148,7 @@ void RobotCMDInit()
     };
     cmd_can_comm = CANCommInit(&comm_conf);
 #endif // GIMBAL_BOARD
-    gimbal_cmd_send.pitch = 0;
+    gimbal_cmd_send.pitch = PITCH_HORIZON_ANGLE; // 初始化为水平位置(0度)
 
     robot_state = ROBOT_READY; // 启动时机器人进入工作模式,后续加入所有应用初始化完成之后再进入
 }
@@ -212,6 +223,7 @@ static void RemoteControlSet()
         gimbal_cmd_send.pitch += 0.001f * (float)rc_data[TEMP].rc.rocker_l1;
     }
     // 云台软件限位
+    LimitPitchAngle_IMU();
 
     // 底盘参数,目前没有加入小陀螺(调试似乎暂时没有必要),系数需要调整
     chassis_cmd_send.vx = CHASSIS_RC_MOVE_RATIO_X * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
@@ -248,6 +260,7 @@ static void MouseKeySet()
 
     gimbal_cmd_send.yaw += (float)rc_data[TEMP].mouse.x / 660 * 10; // 系数待测
     gimbal_cmd_send.pitch += (float)rc_data[TEMP].mouse.y / 660 * 10;
+    LimitPitchAngle_IMU();
 
     switch (rc_data[TEMP].key_count[KEY_PRESS][Key_Z] % 3) // Z键设置弹速
     {
