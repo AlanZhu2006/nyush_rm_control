@@ -7,6 +7,7 @@
 #include "cmsis_os.h"
 
 #include "robot.h"
+#include "robot_def.h"
 #include "ins_task.h"
 #include "motor_task.h"
 #include "referee_task.h"
@@ -59,7 +60,7 @@ __attribute__((noreturn)) void StartINSTASK(void const *argument)
 {
     static float ins_start;
     static float ins_dt;
-    INS_Init(); // 确保BMI088被正确初始化.
+    attitude_t *imu_data = INS_Init(); // 确保BMI088被正确初始化.
     LOGINFO("[freeRTOS] INS Task Start");
     for (;;)
     {
@@ -69,7 +70,11 @@ __attribute__((noreturn)) void StartINSTASK(void const *argument)
         ins_dt = DWT_GetTimeline_ms() - ins_start;
         if (ins_dt > 1)
             LOGERROR("[freeRTOS] INS Task is being DELAY! dt = [%f]", &ins_dt);
-        VisionSend(); // 解算完成后发送视觉数据,但是当前的实现不太优雅,后续若添加硬件触发需要重新考虑结构的组织
+
+        // 更新视觉姿态数据(应用方向转换),实际发送由robot_cmd控制频率
+        VisionSetAltitude(imu_data->Yaw * GYRO2GIMBAL_DIR_YAW,
+                          imu_data->Pitch * GYRO2GIMBAL_DIR_PITCH,
+                          imu_data->Roll * GYRO2GIMBAL_DIR_ROLL);
         osDelay(1);
     }
 }
