@@ -207,6 +207,9 @@ void SentryChassisTask(void)
     float vy_n = chassis_vy;
     float mag = sqrtf(vx_n * vx_n + vy_n * vy_n);
     if (mag > 1.0f) mag = 1.0f;
+    /* 死区: mag 过小时动力轮必须为0，实现原地 reset (仅舵轮回 init) */
+#define CHASSIS_VEL_DEADBAND 0.01f
+    if (mag < CHASSIS_VEL_DEADBAND) mag = 0.0f;
 
     float cur_deg_a = motor_steer_a->measure.total_angle;
     float cur_deg_b = motor_steer_b->measure.total_angle;
@@ -224,7 +227,7 @@ void SentryChassisTask(void)
     DJIMotorSetRef(motor_steer_a, ref_deg_a);
     DJIMotorSetRef(motor_steer_b, ref_deg_b);
 
-    /* 驱动轮速度：同向，大小 * 方向 */
+    /* 驱动轮速度：mag=0 时必为 0，保证原地 reset */
     float scale = 8000.0f;
     vt_lf = direction * mag * scale;
     vt_rf = direction * mag * scale;

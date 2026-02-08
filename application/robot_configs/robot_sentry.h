@@ -12,9 +12,9 @@
 
 #define CHASSIS_TYPE_SWERVE
 
-/* 机器人重要参数定义,注意根据不同机器人进行修改,浮点数需要以.0或f结尾,无符号以u结尾 */
+/* 机器人重要参数定义 (已从 robomaster-control sentry_swerve 迁移) */
 // 云台参数
-#define YAW_CHASSIS_ALIGN_ECD 2711  // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
+#define YAW_CHASSIS_ALIGN_ECD 5736  // 云台和底盘对齐时的编码器值 (robomaster: initial_angle aligned with chassis vx)
 #define YAW_ECD_GREATER_THAN_4096 0 // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
 #define PITCH_HORIZON_ECD 3412      // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
 #define PITCH_MAX_ANGLE 0           // 云台竖直方向最大角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
@@ -35,9 +35,9 @@
 #define GYRO2GIMBAL_DIR_PITCH 1 // 陀螺仪数据相较于云台的pitch的方向,1为相同,-1为相反
 #define GYRO2GIMBAL_DIR_ROLL 1  // 陀螺仪数据相较于云台的roll的方向,1为相同,-1为相反
 
-// 电机正反转配置 (MOTOR_DIRECTION_NORMAL=0, MOTOR_DIRECTION_REVERSE=1)
-#define GIMBAL_YAW_MOTOR_REVERSE MOTOR_DIRECTION_NORMAL
-#define GIMBAL_PITCH_MOTOR_REVERSE MOTOR_DIRECTION_NORMAL
+// 电机正反转配置 (参考步兵; 云台单向转不动时尝试改为REVERSE)
+#define GIMBAL_YAW_MOTOR_REVERSE MOTOR_DIRECTION_REVERSE
+#define GIMBAL_PITCH_MOTOR_REVERSE MOTOR_DIRECTION_REVERSE
 #define CHASSIS_MOTOR_LF_REVERSE MOTOR_DIRECTION_NORMAL
 #define CHASSIS_MOTOR_RF_REVERSE MOTOR_DIRECTION_NORMAL
 #define CHASSIS_MOTOR_LB_REVERSE MOTOR_DIRECTION_NORMAL
@@ -56,23 +56,28 @@
 #define CHASSIS_MOTOR_RB_ID 3  // 右后驱动轮
 
 // Swerve转向电机CAN配置 (GM6020)
-#define STEER_MOTOR_A_ID 5            // 转向电机A (CAN1)
-#define STEER_MOTOR_B_ID 8            // 转向电机B (CAN1) - 修改为8以避免与云台Yaw冲突
+// 与 robomaster-control sentry_swerve.h 一致: Steer A=5, Steer B=6, Gimbal Yaw=7
+#define STEER_MOTOR_A_ID 5            // 转向电机A (CAN1, 0x209)
+#define STEER_MOTOR_B_ID 6            // 转向电机B (CAN1, 0x20A), 必须为6(GM6020无ID8)
 #define STEER_ECD_PER_REV 8192.0f     // GM6020编码器分辨率 (0-8191)
-#define STEER_MOTOR_A_INIT_ANGLE 0.0f // 转向电机A机械零点对应的编码器值(单位:刻度 0-8191),需实测校准
-#define STEER_MOTOR_B_INIT_ANGLE 0.0f // 转向电机B机械零点对应的编码器值(单位:刻度 0-8191),需实测校准
+// 两个舵轮应同时指向前方时对应的编码器刻度 (robomaster sentry_swerve 实测值)
+// 数值不同是因为安装/编码器零点不同; target = init + angle_ticks 保证两轮同步转向
+// 校准: 手动将两轮都朝前,读取两GM6020的编码器值填入; 若两轮零点相同则填相同值
+#define STEER_MOTOR_A_INIT_ANGLE 1084.0f  // A朝前时的刻度 (robomaster)
+#define STEER_MOTOR_B_INIT_ANGLE 2434.0f  // B朝前时的刻度 (robomaster)
 
 // 云台电机CAN配置 (GM6020)
+// CAN1: Steer 5,6 + Yaw 7; CAN2: Pitch 5 (与robomaster-control sentry_swerve一致)
 #define GIMBAL_YAW_CAN_BUS hcan1
-#define GIMBAL_YAW_MOTOR_ID 6
+#define GIMBAL_YAW_MOTOR_ID 7         // 云台Yaw (CAN1, 0x20B), 必须为7避免与Steer B(ID6)冲突
 #define GIMBAL_PITCH_CAN_BUS hcan2
-#define GIMBAL_PITCH_MOTOR_ID 7
+#define GIMBAL_PITCH_MOTOR_ID 5       // 云台Pitch (CAN2, 0x209), 与robomaster一致
 
-// 发射机构电机CAN配置
+// 发射机构电机CAN配置 (与robomaster-control sentry_swerve.h一致)
 #define SHOOT_CAN_BUS hcan2
-#define SHOOT_FRICTION_L_ID 1  // 左摩擦轮
-#define SHOOT_FRICTION_R_ID 2  // 右摩擦轮
-#define SHOOT_LOADER_ID 3      // 拨盘
+#define SHOOT_LOADER_ID 1      // 拨盘/供弹 (M3508 ID 1, 0x201)
+#define SHOOT_FRICTION_L_ID 6  // 左摩擦轮 (M3508 ID 6, 0x206)
+#define SHOOT_FRICTION_R_ID 8  // 右摩擦轮 (M3508 ID 8, 0x208)
 
 // 底盘运动参数
 #define CHASSIS_ROTATE_SPEED 4000.0f  // 小陀螺模式旋转速度
@@ -81,12 +86,12 @@
 #define CHASSIS_KB_MOVE_SPEED_X 300.0f // 键鼠模式底盘前后移动速度
 #define CHASSIS_KB_MOVE_SPEED_Y 300.0f // 键鼠模式底盘左右移动速度
 
-// PID参数 - 底盘驱动轮 (M3508)
+// PID参数 - 底盘驱动轮 (M3508, 来自 robomaster sentry_swerve)
 #define CHASSIS_SPEED_PID_KP 10.0f
 #define CHASSIS_SPEED_PID_KI 0.0f
-#define CHASSIS_SPEED_PID_KD 0.0f
-#define CHASSIS_SPEED_PID_INT_LIMIT 3000.0f
-#define CHASSIS_SPEED_PID_MAX_OUT 12000.0f
+#define CHASSIS_SPEED_PID_KD 0.1f
+#define CHASSIS_SPEED_PID_INT_LIMIT 15000.0f
+#define CHASSIS_SPEED_PID_MAX_OUT 7500.0f
 
 #define CHASSIS_CURRENT_PID_KP 0.5f
 #define CHASSIS_CURRENT_PID_KI 0.0f
@@ -94,60 +99,62 @@
 #define CHASSIS_CURRENT_PID_INT_LIMIT 3000.0f
 #define CHASSIS_CURRENT_PID_MAX_OUT 15000.0f
 
-// PID参数 - Swerve转向电机 (GM6020)
-// 角度环PID
-#define STEER_ANGLE_PID_KP 10.0f
-#define STEER_ANGLE_PID_KI 0.0f
-#define STEER_ANGLE_PID_KD 0.0f
-#define STEER_ANGLE_PID_INT_LIMIT 100.0f
-#define STEER_ANGLE_PID_MAX_OUT 500.0f
+// PID参数 - Swerve转向电机 (GM6020, 来自 robomaster sentry_swerve)
+// 角度环 (outer: angle->speed)
+#define STEER_ANGLE_PID_KP 0.7f
+#define STEER_ANGLE_PID_KI 0.045f
+#define STEER_ANGLE_PID_KD 0.018f
+#define STEER_ANGLE_PID_INT_LIMIT 300.0f
+#define STEER_ANGLE_PID_MAX_OUT 300.0f
 
-// 速度环PID
-#define STEER_SPEED_PID_KP 50.0f
-#define STEER_SPEED_PID_KI 200.0f
-#define STEER_SPEED_PID_KD 0.0f
-#define STEER_SPEED_PID_INT_LIMIT 3000.0f
-#define STEER_SPEED_PID_MAX_OUT 20000.0f
+// 速度环 (inner: speed->current)
+#define STEER_SPEED_PID_KP 32.0f
+#define STEER_SPEED_PID_KI 0.01f
+#define STEER_SPEED_PID_KD 2.0f
+#define STEER_SPEED_PID_INT_LIMIT 30000.0f
+#define STEER_SPEED_PID_MAX_OUT 4000.0f
 
-// 电流环PID (GM6020一般不使用电流环，保留接口)
+// 电流环 (GM6020一般不使用)
 #define STEER_CURRENT_PID_KP 0.0f
 #define STEER_CURRENT_PID_KI 0.0f
 #define STEER_CURRENT_PID_KD 0.0f
 #define STEER_CURRENT_PID_INT_LIMIT 3000.0f
 #define STEER_CURRENT_PID_MAX_OUT 15000.0f
 
-// PID参数 - 云台
-#define GIMBAL_YAW_ANGLE_PID_KP 8.0f
+// PID参数 - 云台 Yaw (参考步兵 robot_infantry.h)
+#define GIMBAL_YAW_ANGLE_PID_KP 7.0f
 #define GIMBAL_YAW_ANGLE_PID_KI 0.0f
-#define GIMBAL_YAW_ANGLE_PID_KD 0.0f
-#define GIMBAL_YAW_ANGLE_PID_DEADBAND 0.1f
+#define GIMBAL_YAW_ANGLE_PID_KD 0.9f
+#define GIMBAL_YAW_ANGLE_PID_DEADBAND 0.008f
 #define GIMBAL_YAW_ANGLE_PID_INT_LIMIT 100.0f
-#define GIMBAL_YAW_ANGLE_PID_MAX_OUT 500.0f
+#define GIMBAL_YAW_ANGLE_PID_MAX_OUT 600.0f
 
-#define GIMBAL_YAW_SPEED_PID_KP 50.0f
-#define GIMBAL_YAW_SPEED_PID_KI 200.0f
+#define GIMBAL_YAW_SPEED_PID_KP 80.0f
+#define GIMBAL_YAW_SPEED_PID_KI 120.0f
 #define GIMBAL_YAW_SPEED_PID_KD 0.0f
 #define GIMBAL_YAW_SPEED_PID_INT_LIMIT 3000.0f
 #define GIMBAL_YAW_SPEED_PID_MAX_OUT 20000.0f
 
-#define GIMBAL_PITCH_ANGLE_PID_KP 10.0f
+// Pitch: 角度环为主 (robomaster single-loop, outer: 20,0,2,30000,25000)
+#define GIMBAL_PITCH_ANGLE_PID_KP 20.0f
 #define GIMBAL_PITCH_ANGLE_PID_KI 0.0f
-#define GIMBAL_PITCH_ANGLE_PID_KD 0.0f
-#define GIMBAL_PITCH_ANGLE_PID_INT_LIMIT 100.0f
-#define GIMBAL_PITCH_ANGLE_PID_MAX_OUT 500.0f
+#define GIMBAL_PITCH_ANGLE_PID_KD 2.0f
+#define GIMBAL_PITCH_ANGLE_PID_INT_LIMIT 30000.0f
+#define GIMBAL_PITCH_ANGLE_PID_MAX_OUT 25000.0f
 
 #define GIMBAL_PITCH_SPEED_PID_KP 50.0f
-#define GIMBAL_PITCH_SPEED_PID_KI 350.0f
+#define GIMBAL_PITCH_SPEED_PID_KI 0.0f
 #define GIMBAL_PITCH_SPEED_PID_KD 0.0f
 #define GIMBAL_PITCH_SPEED_PID_INT_LIMIT 2500.0f
 #define GIMBAL_PITCH_SPEED_PID_MAX_OUT 20000.0f
 
-// PID参数 - 发射
-#define SHOOT_FRICTION_SPEED_PID_KP 0.0f
-#define SHOOT_FRICTION_SPEED_PID_KI 0.0f
-#define SHOOT_FRICTION_SPEED_PID_KD 0.0f
-#define SHOOT_FRICTION_SPEED_PID_INT_LIMIT 10000.0f
-#define SHOOT_FRICTION_SPEED_PID_MAX_OUT 15000.0f
+// PID参数 - 发射 (来自 robomaster sentry_swerve)
+// 摩擦轮: pid_outer {5, 0.5, 0.1, 15000, 7500}
+#define SHOOT_FRICTION_SPEED_PID_KP 5.0f
+#define SHOOT_FRICTION_SPEED_PID_KI 0.5f
+#define SHOOT_FRICTION_SPEED_PID_KD 0.1f
+#define SHOOT_FRICTION_SPEED_PID_INT_LIMIT 15000.0f
+#define SHOOT_FRICTION_SPEED_PID_MAX_OUT 7500.0f
 
 #define SHOOT_FRICTION_CURRENT_PID_KP 0.0f
 #define SHOOT_FRICTION_CURRENT_PID_KI 0.0f
@@ -155,16 +162,17 @@
 #define SHOOT_FRICTION_CURRENT_PID_INT_LIMIT 10000.0f
 #define SHOOT_FRICTION_CURRENT_PID_MAX_OUT 15000.0f
 
+// 拨盘/供弹: pid_outer {1, 0, 0, 15000, 7500}
 #define SHOOT_LOADER_ANGLE_PID_KP 0.0f
 #define SHOOT_LOADER_ANGLE_PID_KI 0.0f
 #define SHOOT_LOADER_ANGLE_PID_KD 0.0f
 #define SHOOT_LOADER_ANGLE_PID_MAX_OUT 200.0f
 
-#define SHOOT_LOADER_SPEED_PID_KP 0.0f
+#define SHOOT_LOADER_SPEED_PID_KP 1.0f
 #define SHOOT_LOADER_SPEED_PID_KI 0.0f
 #define SHOOT_LOADER_SPEED_PID_KD 0.0f
-#define SHOOT_LOADER_SPEED_PID_INT_LIMIT 5000.0f
-#define SHOOT_LOADER_SPEED_PID_MAX_OUT 5000.0f
+#define SHOOT_LOADER_SPEED_PID_INT_LIMIT 15000.0f
+#define SHOOT_LOADER_SPEED_PID_MAX_OUT 7500.0f
 
 #define SHOOT_LOADER_CURRENT_PID_KP 0.0f
 #define SHOOT_LOADER_CURRENT_PID_KI 0.0f

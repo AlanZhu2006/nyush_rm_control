@@ -307,8 +307,15 @@ static void MouseKeySet()
  */
 static void EmergencyHandler()
 {
-    // 拨轮的向下拨超过一半进入急停模式.注意向打时下拨轮是正
-    if (rc_data[TEMP].rc.dial > 300 || robot_state == ROBOT_STOP) // 还需添加重要应用和模块离线的判断
+    // 拨轮向上拨,恢复正常运行(右摇杆损坏时使用).必须先判恢复,否则松手回弹会误触发
+    if (rc_data[TEMP].rc.dial < -400)
+    {
+        robot_state = ROBOT_READY;
+        shoot_cmd_send.shoot_mode = SHOOT_ON;
+        LOGINFO("[CMD] reinstate, robot ready");
+    }
+    // 拨轮向下拨进入急停; 已在急停时维持停止(松手后不恢复)
+    else if (rc_data[TEMP].rc.dial > 300 || robot_state == ROBOT_STOP)
     {
         robot_state = ROBOT_STOP;
         gimbal_cmd_send.gimbal_mode = GIMBAL_ZERO_FORCE;
@@ -317,13 +324,6 @@ static void EmergencyHandler()
         shoot_cmd_send.friction_mode = FRICTION_OFF;
         shoot_cmd_send.load_mode = LOAD_STOP;
         LOGERROR("[CMD] emergency stop!");
-    }
-    // 遥控器右侧开关为[上],恢复正常运行
-    if (switch_is_up(rc_data[TEMP].rc.switch_right))
-    {
-        robot_state = ROBOT_READY;
-        shoot_cmd_send.shoot_mode = SHOOT_ON;
-        LOGINFO("[CMD] reinstate, robot ready");
     }
 }
 

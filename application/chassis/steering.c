@@ -1,10 +1,15 @@
 /**
  * @file steering.c
  * @brief 哨兵 Swerve 转向角解算：vx,vy -> 两路转向目标角 + 驱动方向，带最短路径
+ *        参考 robomaster-control: init_angle_a=1084, init_angle_b=2434
  */
 #include "steering.h"
 #include "robot_def.h"
 #include <math.h>
+
+#ifndef STEER_ECD_PER_REV
+#define STEER_ECD_PER_REV 8192.0f
+#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
