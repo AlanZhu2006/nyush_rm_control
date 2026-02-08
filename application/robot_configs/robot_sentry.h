@@ -60,11 +60,10 @@
 #define STEER_MOTOR_A_ID 5            // 转向电机A (CAN1, 0x209)
 #define STEER_MOTOR_B_ID 6            // 转向电机B (CAN1, 0x20A), 必须为6(GM6020无ID8)
 #define STEER_ECD_PER_REV 8192.0f     // GM6020编码器分辨率 (0-8191)
-// 两个舵轮应同时指向前方时对应的编码器刻度 (robomaster sentry_swerve 实测值)
-// 数值不同是因为安装/编码器零点不同; target = init + angle_ticks 保证两轮同步转向
-// 校准: 手动将两轮都朝前,读取两GM6020的编码器值填入; 若两轮零点相同则填相同值
-#define STEER_MOTOR_A_INIT_ANGLE 1084.0f  // A朝前时的刻度 (robomaster)
-#define STEER_MOTOR_B_INIT_ANGLE 2434.0f  // B朝前时的刻度 (robomaster)
+// 两个舵轮应同时指向前方时对应的编码器刻度
+// 若 RC 控制走不了、两轮反向，对其中一轮 init 加 4096(半圈) 修正
+#define STEER_MOTOR_A_INIT_ANGLE 1084.0f   // A朝前 (robomaster)
+#define STEER_MOTOR_B_INIT_ANGLE 6530.0f   // B朝前: 2434+4096 修正B轮180°反向
 
 // 云台电机CAN配置 (GM6020)
 // CAN1: Steer 5,6 + Yaw 7; CAN2: Pitch 5 (与robomaster-control sentry_swerve一致)
@@ -99,20 +98,21 @@
 #define CHASSIS_CURRENT_PID_INT_LIMIT 3000.0f
 #define CHASSIS_CURRENT_PID_MAX_OUT 15000.0f
 
-// PID参数 - Swerve转向电机 (GM6020, 来自 robomaster sentry_swerve)
+// PID参数 - Swerve转向电机 (GM6020)
+// 在同步速度与稳定性间折中：过大会两轮颤抖，过小则前轮慢、运动学异常
 // 角度环 (outer: angle->speed)
-#define STEER_ANGLE_PID_KP 0.7f
-#define STEER_ANGLE_PID_KI 0.045f
-#define STEER_ANGLE_PID_KD 0.018f
-#define STEER_ANGLE_PID_INT_LIMIT 300.0f
-#define STEER_ANGLE_PID_MAX_OUT 300.0f
+#define STEER_ANGLE_PID_KP 1.0f
+#define STEER_ANGLE_PID_KI 0.048f
+#define STEER_ANGLE_PID_KD 0.02f
+#define STEER_ANGLE_PID_INT_LIMIT 350.0f
+#define STEER_ANGLE_PID_MAX_OUT 320.0f
 
-// 速度环 (inner: speed->current)
-#define STEER_SPEED_PID_KP 32.0f
-#define STEER_SPEED_PID_KI 0.01f
+// 速度环 (inner: speed->current)，Kd 不宜过大否则易抖
+#define STEER_SPEED_PID_KP 34.0f
+#define STEER_SPEED_PID_KI 0.02f
 #define STEER_SPEED_PID_KD 2.0f
 #define STEER_SPEED_PID_INT_LIMIT 30000.0f
-#define STEER_SPEED_PID_MAX_OUT 4000.0f
+#define STEER_SPEED_PID_MAX_OUT 4500.0f
 
 // 电流环 (GM6020一般不使用)
 #define STEER_CURRENT_PID_KP 0.0f

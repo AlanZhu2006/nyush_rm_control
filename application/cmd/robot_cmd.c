@@ -334,26 +334,27 @@ static void MouseKeySet()
     }
 }
 
+/* 拨轮范围约 -660~+660。边沿检测：拨一下即锁存，松手不解除。
+ * 你处遥控：向下拨 = 正值，向上拨 = 负值。故 正侧=急停，负侧=解除。 */
+#define DIAL_EMERGENCY_THRESH  350   /* 拨到「正侧」= 向下 → 急停 */
+#define DIAL_RELEASE_THRESH   -350  /* 拨到「负侧」= 向上 → 解除 */
+
+#define DIAL_MIDDLE_FRAMES 8  /* 解除前需在「非正侧」保持的帧数(200Hz→40ms)，避免松手弹过误解除 */
+
 /**
- * @brief  紧急停止,包括遥控器左上侧拨轮打满/重要模块离线/双板通信失效等
- *         停止的阈值'300'待修改成合适的值,或改为开关控制.
- *
- * @todo   后续修改为遥控器离线则电机停止(关闭遥控器急停),通过给遥控器模块添加daemon实现
- *
+ * @brief  急停：向下拨一次进入急停（保持），松手回中也保持；向上拨一次才解除。
  */
 static void EmergencyHandler()
 {
-    // 拨轮向上拨,恢复正常运行(右摇杆损坏时使用).必须先判恢复,否则松手回弹会误触发
-    if (rc_data[TEMP].rc.dial < -400)
-    {
-        robot_state = ROBOT_READY;
-        shoot_cmd_send.shoot_mode = SHOOT_ON;
-        LOGINFO("[CMD] reinstate, robot ready");
-    }
-    // 拨轮向下拨进入急停; 已在急停时维持停止(松手后不恢复)
-    else if (rc_data[TEMP].rc.dial > 300 || robot_state == ROBOT_STOP)
+    static int16_t last_dial = 0;
+    static uint8_t non_positive_frames = 0; /* 连续在非正侧的帧数 */
+    int16_t cur_dial = rc_data[TEMP].rc.dial;
+
+    /* 向下：边沿 进入正侧 → 急停（拨一次即保持） */
+    if (cur_dial > DIAL_EMERGENCY_THRESH && last_dial <= DIAL_EMERGENCY_THRESH)
     {
         robot_state = ROBOT_STOP;
+        non_positive_frames = 0;
         gimbal_cmd_send.gimbal_mode = GIMBAL_ZERO_FORCE;
         chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
         shoot_cmd_send.shoot_mode = SHOOT_OFF;
@@ -361,6 +362,38 @@ static void EmergencyHandler()
         shoot_cmd_send.load_mode = LOAD_STOP;
         LOGERROR("[CMD] emergency stop!");
     }
+    /* 向上：急停下进入负侧且已在非正侧稳定若干帧才解除（松手弹过不会稳定在非正侧） */
+    else if (robot_state == ROBOT_STOP &&
+             cur_dial < DIAL_RELEASE_THRESH && last_dial >= DIAL_RELEASE_THRESH &&
+             non_positive_frames >= DIAL_MIDDLE_FRAMES)
+    {
+        robot_state = ROBOT_READY;
+        non_positive_frames = 0;
+        shoot_cmd_send.shoot_mode = SHOOT_ON;
+        LOGINFO("[CMD] reinstate, robot ready");
+    }
+    /* 已在急停时维持停止状态 */
+    else if (robot_state == ROBOT_STOP)
+    {
+        gimbal_cmd_send.gimbal_mode = GIMBAL_ZERO_FORCE;
+        chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
+        shoot_cmd_send.shoot_mode = SHOOT_OFF;
+        shoot_cmd_send.friction_mode = FRICTION_OFF;
+        shoot_cmd_send.load_mode = LOAD_STOP;
+    }
+
+    /* 统计连续在非正侧帧数：急停状态下且当前不在正侧则累加，否则清零 */
+    if (robot_state == ROBOT_STOP)
+    {
+        if (cur_dial <= DIAL_EMERGENCY_THRESH)
+            non_positive_frames = (non_positive_frames < 255u) ? (non_positive_frames + 1u) : 255u;
+        else
+            non_positive_frames = 0;
+    }
+    else
+        non_positive_frames = 0;
+
+    last_dial = cur_dial;
 }
 
 /* 机器人核心控制任务,200Hz频率运行(必须高于视觉发送频率) */

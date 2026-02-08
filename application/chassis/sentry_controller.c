@@ -7,6 +7,7 @@
 #include "robot_def.h"
 #include "dji_motor.h"
 #include "stm32f4xx_hal.h"
+#include "bsp_log.h"
 #include <math.h>
 #include "super_cap.h"
 #include "message_center.h"
@@ -33,9 +34,9 @@ static Referee_Interactive_info_t ui_data;
 #define HALF_TRACK_WIDTH  (TRACK_WIDTH / 2.0f)
 #define STEER_DEG_TO_TICKS(deg) ((deg) * (STEER_ECD_PER_REV / 360.0f))
 
-#define STEER_ALIGNMENT_THRESHOLD 100.0f   // encoder ticks (robomaster: 100)
-#define STEER_ALIGNMENT_TIMEOUT_MS 5000u   // 5 seconds
-#define STEER_ALIGNMENT_STABLE_CYCLES 10u  // require stable for 10 cycles (~50ms @ 200Hz)
+#define STEER_ALIGNMENT_THRESHOLD 100.0f   // encoder ticks
+#define STEER_ALIGNMENT_TIMEOUT_MS 5000u
+#define STEER_ALIGNMENT_STABLE_CYCLES 10u
 
 static float chassis_vx, chassis_vy;
 static float vt_lf, vt_rf, vt_lb, vt_rb;
@@ -127,7 +128,7 @@ void SentryChassisInit(void)
             .angle_feedback_source = MOTOR_FEED,
             .speed_feedback_source = MOTOR_FEED,
             .outer_loop_type = ANGLE_LOOP,
-            .close_loop_type = ANGLE_LOOP | SPEED_LOOP,  // GM6020不需要电流环
+            .close_loop_type = ANGLE_LOOP | SPEED_LOOP,  /* GM6020 不需要电流环，与 robomaster/gimbal 一致 */
             .motor_reverse_flag = STEER_MOTOR_A_REVERSE,
         },
         .motor_type = GM6020,
@@ -151,21 +152,6 @@ void SentryChassisInit(void)
     chassis_sub = SubRegister("chassis_cmd", sizeof(Chassis_Ctrl_Cmd_s));
     chassis_pub = PubRegister("chassis_feed", sizeof(Chassis_Upload_Data_s));
 #endif
-
-    // Initialize chassis_cmd_recv to SAFE defaults
-    // 注意：不要设置为ZERO_FORCE，否则对齐逻辑永远不会运行
-    chassis_cmd_recv.chassis_mode = CHASSIS_NO_FOLLOW;  // 允许对齐运行
-    chassis_cmd_recv.vx = 0.0f;
-    chassis_cmd_recv.vy = 0.0f;
-    chassis_cmd_recv.wz = 0.0f;
-    chassis_cmd_recv.offset_angle = 0.0f;
-
-    // Stop drive motors initially, but leave steer motors enabled for alignment
-    DJIMotorStop(motor_lf);
-    DJIMotorStop(motor_rf);
-    DJIMotorStop(motor_lb);
-    DJIMotorStop(motor_rb);
-    // Don't stop steer motors - let alignment logic control them
 }
 
 static void SentryLimitChassisOutput(void)
@@ -186,11 +172,8 @@ void SentryChassisTask(void)
     static uint32_t align_start_tick = 0u;
     static uint32_t align_stable_count = 0u;
 
-    /* 舵轮对齐阶段: 必须在 chassis_mode 检查之前执行，否则上电时 ZERO_FORCE 会导致对齐永远不跑
-     * 参考 robomaster: Sentry_WaitForSteerAlignment 每 50ms 计算电流并发送；
-     * nyush 通过 DJIMotorSetRef + MotorControlTask 实现，需每周期更新 ref 以保证闭环收敛 */
+    /* 舵轮对齐阶段：动力轮必停，仅舵轮同步转到 init，参考 robomaster */
     if (!steer_aligned) {
-        // Only enable steer motors during alignment
         DJIMotorStop(motor_lf);
         DJIMotorStop(motor_rf);
         DJIMotorStop(motor_lb);
@@ -198,34 +181,30 @@ void SentryChassisTask(void)
         DJIMotorEnable(motor_steer_a);
         DJIMotorEnable(motor_steer_b);
 
-        if (align_start_tick == 0u) {
+        if (align_start_tick == 0u)
             align_start_tick = HAL_GetTick();
-        }
 
-        /* 每周期计算目标 total_angle（最短路径），与 robomaster SteerController_CascadeControl 思路一致 */
+        /* 两轮同步：都朝 init 转，用同一套最短路径逻辑 */
         uint16_t cur_ecd_a = motor_steer_a->measure.ecd;
         uint16_t cur_ecd_b = motor_steer_b->measure.ecd;
         float cur_angle_a = cur_ecd_a * (360.0f / STEER_ECD_PER_REV);
         float cur_angle_b = cur_ecd_b * (360.0f / STEER_ECD_PER_REV);
-        float target_angle_a = STEER_MOTOR_A_INIT_ANGLE * (360.0f / STEER_ECD_PER_REV);
-        float target_angle_b = STEER_MOTOR_B_INIT_ANGLE * (360.0f / STEER_ECD_PER_REV);
-        float delta_a = target_angle_a - cur_angle_a;
-        float delta_b = target_angle_b - cur_angle_b;
+        float target_a = STEER_MOTOR_A_INIT_ANGLE * (360.0f / STEER_ECD_PER_REV);
+        float target_b = STEER_MOTOR_B_INIT_ANGLE * (360.0f / STEER_ECD_PER_REV);
+        float delta_a = target_a - cur_angle_a;
+        float delta_b = target_b - cur_angle_b;
         if (delta_a > 180.0f) delta_a -= 360.0f;
         if (delta_a < -180.0f) delta_a += 360.0f;
         if (delta_b > 180.0f) delta_b -= 360.0f;
         if (delta_b < -180.0f) delta_b += 360.0f;
+
         DJIMotorSetRef(motor_steer_a, motor_steer_a->measure.total_angle + delta_a);
         DJIMotorSetRef(motor_steer_b, motor_steer_b->measure.total_angle + delta_b);
 
-        // 每次循环都设置驱动轮为0
-        vt_lf = vt_rf = vt_lb = vt_rb = 0.0f;
-        SentryLimitChassisOutput();
+        /* 不调用 SentryLimitChassisOutput：动力轮已 Stop，会发 0；不再设置 ref 避免任何输出 */
 
-        // 检查是否对齐完成（重用上面的cur_ecd_a/b）
         float err_a = fabsf((float)STEER_MOTOR_A_INIT_ANGLE - (float)cur_ecd_a);
         float err_b = fabsf((float)STEER_MOTOR_B_INIT_ANGLE - (float)cur_ecd_b);
-        // 考虑编码器环绕
         if (err_a > STEER_ECD_PER_REV / 2.0f) err_a = STEER_ECD_PER_REV - err_a;
         if (err_b > STEER_ECD_PER_REV / 2.0f) err_b = STEER_ECD_PER_REV - err_b;
 
@@ -238,13 +217,23 @@ void SentryChassisTask(void)
             (HAL_GetTick() - align_start_tick >= STEER_ALIGNMENT_TIMEOUT_MS))
             steer_aligned = 1;
 
+        /* 校准用：每 500ms 打印一次 ecd 值，手动将两轮朝前后可读取填入 STEER_MOTOR_A/B_INIT_ANGLE */
+        {
+            static uint32_t last_log = 0;
+            if (HAL_GetTick() - last_log >= 500u) {
+                last_log = HAL_GetTick();
+                LOGINFO("[sentry] steer A ecd=%u B ecd=%u (calib: align wheels forward, read values)",
+                        (unsigned)motor_steer_a->measure.ecd,
+                        (unsigned)motor_steer_b->measure.ecd);
+            }
+        }
+
 #ifdef ONE_BOARD
         PubPushMessage(chassis_pub, (void *)&chassis_feedback_data);
 #endif
         return;
     }
 
-    /* 对齐完成后再检查 chassis_mode */
     if (chassis_cmd_recv.chassis_mode == CHASSIS_ZERO_FORCE) {
         DJIMotorStop(motor_lf);
         DJIMotorStop(motor_rf);
@@ -258,7 +247,6 @@ void SentryChassisTask(void)
         return;
     }
 
-    // Alignment complete, now enable all motors
     DJIMotorEnable(motor_lf);
     DJIMotorEnable(motor_rf);
     DJIMotorEnable(motor_lb);
@@ -291,11 +279,14 @@ void SentryChassisTask(void)
     float vy_n = chassis_vy;
     float mag = sqrtf(vx_n * vx_n + vy_n * vy_n);
     if (mag > 1.0f) mag = 1.0f;
-    /* 死区: mag 过小时动力轮必须为0，实现原地 reset (仅舵轮回 init) */
-#define CHASSIS_VEL_DEADBAND 0.01f
-    if (mag < CHASSIS_VEL_DEADBAND) mag = 0.0f;
+#define CHASSIS_VEL_DEADBAND 0.08f  /* 死区，避免 reset 时 RC/雷达残值导致前冲 */
+    if (mag < CHASSIS_VEL_DEADBAND) {
+        mag = 0.0f;
+        vx_n = vy_n = 0.0f;  /* 关键：reset 时必须传 0 给 SteeringCalculate，否则舵轮会朝残值方向转 */
+    }
 
-    /* SteeringCalculate 工作在 ticks [0, 8192)，使用 ecd 而非 total_angle */
+    /* SteeringCalculate 工作在 ticks [0, 8192)，用 ecd 而非 total_angle
+     * 参考 robomaster：mag=0 时两轮都回 init，驱动必停 */
     float cur_ticks_a = (float)motor_steer_a->measure.ecd;
     float cur_ticks_b = (float)motor_steer_b->measure.ecd;
 
@@ -305,7 +296,7 @@ void SentryChassisTask(void)
                      cur_ticks_a, cur_ticks_b,
                      &angle_a, &angle_b, &direction);
 
-    /* DJIMotor 使用 total_angle 反馈，ref 需在同一坐标系。使用最短路径将目标 ticks 转为 total_angle */
+    /* DJIMotor 用 total_angle 反馈，ref 需在同一坐标系（最短路径） */
     float target_deg_a = SteeringTicksToDegrees(angle_a);
     float target_deg_b = SteeringTicksToDegrees(angle_b);
     float cur_single_a = motor_steer_a->measure.angle_single_round;
@@ -319,9 +310,8 @@ void SentryChassisTask(void)
     DJIMotorSetRef(motor_steer_a, motor_steer_a->measure.total_angle + delta_a);
     DJIMotorSetRef(motor_steer_b, motor_steer_b->measure.total_angle + delta_b);
 
-    /* 驱动轮速度：mag=0 时必为 0，保证原地 reset */
-    /* 提高速度scale以获得更快的移动速度 (原8000.0f) */
-    float scale = 18000.0f;
+    /* 驱动轮速度：同向，大小 * 方向 */
+    float scale = 8000.0f;
     vt_lf = direction * mag * scale;
     vt_rf = direction * mag * scale;
     vt_lb = direction * mag * scale;
