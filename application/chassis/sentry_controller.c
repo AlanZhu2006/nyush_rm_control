@@ -17,6 +17,21 @@
 #include "general_def.h"  /* DEGREE_2_RAD */
 #include "arm_math.h"
 
+/* Make the implementation visible in editors/IntelliSense by defining
+    ROBOT_TYPE_sentry for the IDE parser only. This does not affect normal
+    builds because common IDE parsers define one of these helper macros. */
+#if (defined(__INTELLISENSE__) || defined(__clang_analyzer__) || defined(__GNUC__ONLY_FOR_IDE__)) && !defined(ROBOT_TYPE_sentry)
+/* Intentional editor-only define to avoid greyed-out #else region */
+#define ROBOT_TYPE_sentry 1
+#endif
+
+#if !defined(ROBOT_TYPE_sentry)
+/* When not building for sentry, provide empty stubs so this translation unit
+    can be compiled/linked without requiring sentry-specific config macros. */
+void SentryChassisInit(void) { }
+void SentryChassisTask(void) { }
+#else
+
 #ifdef ONE_BOARD
 static Publisher_t *chassis_pub;
 static Subscriber_t *chassis_sub;
@@ -323,3 +338,5 @@ void SentryChassisTask(void)
     PubPushMessage(chassis_pub, (void *)&chassis_feedback_data);
 #endif
 }
+
+#endif /* ROBOT_TYPE_sentry */
