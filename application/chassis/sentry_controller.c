@@ -401,8 +401,8 @@ void SentryChassisTask(void) {
     /* ---- 云台坐标系 -> 底盘坐标系 ---- */
     float cos_theta = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
     float sin_theta = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
-    chassis_vx =
-        -chassis_cmd_recv.vx * cos_theta + chassis_cmd_recv.vy * sin_theta;
+    chassis_vx =-(
+        -chassis_cmd_recv.vx * cos_theta + chassis_cmd_recv.vy * sin_theta);
     chassis_vy =
         chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
 
