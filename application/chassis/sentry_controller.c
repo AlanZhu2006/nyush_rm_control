@@ -118,15 +118,15 @@ void SentryChassisInit(void) {
     };
 
     // 驱动轮 A — 使用左前电机 ID
-    drive_config.can_init_config.tx_id = CHASSIS_MOTOR_LF_ID;
+    drive_config.can_init_config.tx_id = CHASSIS_MOTOR_LB_ID;
     drive_config.controller_setting_init_config.motor_reverse_flag =
-        CHASSIS_MOTOR_LF_REVERSE;
+        CHASSIS_MOTOR_LB_REVERSE;
     motor_drive_a = DJIMotorInit(&drive_config);
 
     // 驱动轮 B — 使用右后电机 ID
-    drive_config.can_init_config.tx_id = CHASSIS_MOTOR_RF_ID;
+    drive_config.can_init_config.tx_id = CHASSIS_MOTOR_RB_ID;
     drive_config.controller_setting_init_config.motor_reverse_flag =
-        CHASSIS_MOTOR_RF_REVERSE;
+        CHASSIS_MOTOR_RB_REVERSE;
     motor_drive_b = DJIMotorInit(&drive_config);
 
     /* ---------- 转向电机 GM6020（角度环 + 速度环） ---------- */
@@ -336,10 +336,10 @@ static void SentryTranslationCalculate(float vx_body, float vy_body) {
 
     DJIMotorSetRef(
         motor_steer_a,
-        SteeringDegreesToTicks(motor_steer_a->measure.total_angle + delta_a));
+        (motor_steer_a->measure.total_angle + delta_a));
     DJIMotorSetRef(
         motor_steer_b,
-        SteeringDegreesToTicks(motor_steer_b->measure.total_angle + delta_b));
+        (motor_steer_b->measure.total_angle + delta_b));
 
     /* 驱动轮速度：两轮同速同向（平移运动） */
     vt_drive_a = direction * mag * DRIVE_SPEED_SCALE;

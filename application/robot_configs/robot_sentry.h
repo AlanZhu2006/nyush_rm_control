@@ -88,9 +88,9 @@
 // PID参数 - 底盘驱动轮 (M3508, 来自 robomaster sentry_swerve)
 #define CHASSIS_SPEED_PID_KP 10.0f
 #define CHASSIS_SPEED_PID_KI 0.0f
-#define CHASSIS_SPEED_PID_KD 0.1f
-#define CHASSIS_SPEED_PID_INT_LIMIT 15000.0f
-#define CHASSIS_SPEED_PID_MAX_OUT 7500.0f
+#define CHASSIS_SPEED_PID_KD 0.0f
+#define CHASSIS_SPEED_PID_INT_LIMIT 3000.0f
+#define CHASSIS_SPEED_PID_MAX_OUT 12000.0f
 
 #define CHASSIS_CURRENT_PID_KP 0.5f
 #define CHASSIS_CURRENT_PID_KI 0.0f
@@ -101,18 +101,21 @@
 // PID参数 - Swerve转向电机 (GM6020)
 // 在同步速度与稳定性间折中：过大会两轮颤抖，过小则前轮慢、运动学异常
 // 角度环 (outer: angle->speed)
-#define STEER_ANGLE_PID_KP 1.0f
-#define STEER_ANGLE_PID_KI 0.048f
-#define STEER_ANGLE_PID_KD 0.02f
+#define STEER_ANGLE_PID_KP 8.0f
+#define STEER_ANGLE_PID_KI 0.08f
+#define STEER_ANGLE_PID_KD 0.2f
 #define STEER_ANGLE_PID_INT_LIMIT 350.0f
-#define STEER_ANGLE_PID_MAX_OUT 320.0f
+// 提高最大输出以允许更快的转向响应
+#define STEER_ANGLE_PID_MAX_OUT 600.0f
 
 // 速度环 (inner: speed->current)，Kd 不宜过大否则易抖
-#define STEER_SPEED_PID_KP 34.0f
-#define STEER_SPEED_PID_KI 0.02f
-#define STEER_SPEED_PID_KD 2.0f
-#define STEER_SPEED_PID_INT_LIMIT 30000.0f
-#define STEER_SPEED_PID_MAX_OUT 4500.0f
+// 内环速度环更激进以提升响应速度
+#define STEER_SPEED_PID_KP 80.0f
+#define STEER_SPEED_PID_KI 120.0f
+#define STEER_SPEED_PID_KD 0.0f
+#define STEER_SPEED_PID_INT_LIMIT 3000.0f
+// 增加内环最大输出，允许更大驱动命令
+#define STEER_SPEED_PID_MAX_OUT 10000.0f
 
 // 电流环 (GM6020一般不使用)
 #define STEER_CURRENT_PID_KP 0.0f
