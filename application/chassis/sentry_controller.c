@@ -391,8 +391,7 @@ void SentryChassisTask(void) {
                                   fabsf(chassis_cmd_recv.offset_angle);
             break;
         case CHASSIS_ROTATE:
-            // 两轮舵轮结构暂不支持原地旋转，忽略 wz
-            chassis_cmd_recv.wz = 0;
+            chassis_cmd_recv.wz = CHASSIS_ROTATE_SPEED;
             break;
         default:
             break;

@@ -23,6 +23,7 @@
 #define VISION_PITCH_GAIN 1.0f
 #define VISION_RAD_TO_DEG 57.295779513f
 #define VISION_SEND_DIV 10u // 200Hz / 10 = 20Hz
+#define GIMBAL_SPIN_DEG_PER_S 60.0f // 右侧开关中档时云台自转角速度 (度/秒)
 
 /* cmd应用包含的模块实例指针和交互信息存储*/
 #ifdef GIMBAL_BOARD // 对双板的兼容,条件编译
@@ -192,10 +193,11 @@ static void RemoteControlSet()
         chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
         gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
     }
-    else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中],底盘和云台分离,底盘保持不转动
+    else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中],云台自转(小陀螺),底盘不跟随
     {
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
-        gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
+        gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
+        gimbal_cmd_send.yaw += GIMBAL_SPIN_DEG_PER_S * (1.0f / 200.0f); // 200Hz 每帧累加
     }
     else if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上],底盘不跟随
     {
