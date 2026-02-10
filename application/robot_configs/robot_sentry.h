@@ -80,8 +80,8 @@
 
 // 底盘运动参数
 #define CHASSIS_ROTATE_SPEED 4000.0f  // 小陀螺模式旋转速度
-#define CHASSIS_RC_MOVE_RATIO_X 10.0f // 遥控器模式底盘前后移动速度系数
-#define CHASSIS_RC_MOVE_RATIO_Y 10.0f // 遥控器模式底盘左右移动速度系数
+#define CHASSIS_RC_MOVE_RATIO_X 5.0f // 遥控器模式底盘前后移动速度系数
+#define CHASSIS_RC_MOVE_RATIO_Y 5.0f // 遥控器模式底盘左右移动速度系数
 #define CHASSIS_KB_MOVE_SPEED_X 300.0f // 键鼠模式底盘前后移动速度
 #define CHASSIS_KB_MOVE_SPEED_Y 300.0f // 键鼠模式底盘左右移动速度
 
@@ -101,16 +101,16 @@
 // PID参数 - Swerve转向电机 (GM6020)
 // 在同步速度与稳定性间折中：过大会两轮颤抖，过小则前轮慢、运动学异常
 // 角度环 (outer: angle->speed)
-#define STEER_ANGLE_PID_KP 8.0f
+#define STEER_ANGLE_PID_KP 15.0f
 #define STEER_ANGLE_PID_KI 0.08f
-#define STEER_ANGLE_PID_KD 0.2f
+#define STEER_ANGLE_PID_KD 0.0f
 #define STEER_ANGLE_PID_INT_LIMIT 350.0f
 // 提高最大输出以允许更快的转向响应
 #define STEER_ANGLE_PID_MAX_OUT 600.0f
 
 // 速度环 (inner: speed->current)，Kd 不宜过大否则易抖
 // 内环速度环更激进以提升响应速度
-#define STEER_SPEED_PID_KP 80.0f
+#define STEER_SPEED_PID_KP 150.0f
 #define STEER_SPEED_PID_KI 120.0f
 #define STEER_SPEED_PID_KD 0.0f
 #define STEER_SPEED_PID_INT_LIMIT 3000.0f
