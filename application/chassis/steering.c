@@ -23,6 +23,11 @@ float SteeringTicksToDegrees(float ticks)
     return ticks * (360.0f / TICKS_PER_REV);
 }
 
+float SteeringDegreesToTicks(float degrees)
+{
+    return degrees * (TICKS_PER_REV / 360.0f);
+}
+
 static float wrap_ticks(float t)
 {
     while (t >= TICKS_PER_REV) t -= TICKS_PER_REV;

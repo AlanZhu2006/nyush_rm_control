@@ -13,6 +13,13 @@
 float SteeringTicksToDegrees(float ticks);
 
 /**
+ * @brief 将角度值转换为编码器刻度值
+ * @param degrees 角度值（度）
+ * @return 编码器刻度值
+ */
+float SteeringDegreesToTicks(float degrees);
+
+/**
  * @brief 计算swerve转向目标角度
  * @param vx 前后方向速度
  * @param vy 左右方向速度
