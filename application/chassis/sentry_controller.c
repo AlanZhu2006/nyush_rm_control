@@ -66,7 +66,7 @@ static DJIMotorInstance* motor_steer_b;  // 舵轮B的转向电机 (GM6020)
 #define STEER_ALIGNMENT_STABLE_CYCLES 10u  // 连续稳定周期数
 
 #define CHASSIS_VEL_DEADBAND 0.08f  // 速度死区，防止遥控器残值导致意外运动
-#define DRIVE_SPEED_SCALE 20000.0f   // 驱动轮速度缩放系数
+// 驱动轮速度缩放见 robot_sentry.h CHASSIS_DRIVE_SPEED_SCALE
 
 /* ======================== 中间变量 ======================== */
 static float chassis_vx, chassis_vy;  // 底盘坐标系下的速度分量
@@ -346,8 +346,8 @@ static void SentryTranslationCalculate(float vx_body, float vy_body) {
         (motor_steer_b->measure.total_angle + delta_b));
 
     /* 驱动轮速度：两轮同速同向（平移运动） */
-    vt_drive_a = direction * mag * DRIVE_SPEED_SCALE;
-    vt_drive_b = direction * mag * DRIVE_SPEED_SCALE;
+    vt_drive_a = direction * mag * CHASSIS_DRIVE_SPEED_SCALE;
+    vt_drive_b = direction * mag * CHASSIS_DRIVE_SPEED_SCALE;
 }
 
 /* ================================================================== */
