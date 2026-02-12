@@ -37,6 +37,7 @@ typedef enum
     PID_ChangingIntegrationRate = 0b00100000,     // 0010 0000
     PID_DerivativeFilter = 0b01000000,            // 0100 0000
     PID_ErrorHandle = 0b10000000,                 // 1000 0000
+    PID_OutputRateLimit = 0x100,                  // 输出变化率限制(单周期最大变化量)，与滤波配合减震
 } PID_Improvement_e;
 
 /* PID 报错类型枚举*/
@@ -70,6 +71,7 @@ typedef struct
     float CoefB;             // 变速积分 ITerm = Err*((A-abs(err)+B)/A)  when B<|err|<A+B
     float Output_LPF_RC;     // 输出滤波器 RC = 1/omegac
     float Derivative_LPF_RC; // 微分滤波器系数
+    float Output_MaxDelta;   // 输出变化率限制
 
     //-----------------------------------
     // for calculating
@@ -111,8 +113,9 @@ typedef struct // config parameter
     float IntegralLimit; // 积分限幅
     float CoefA;         // AB为变速积分参数,变速积分实际上就引入了积分分离
     float CoefB;         // ITerm = Err*((A-abs(err)+B)/A)  when B<|err|<A+B
-    float Output_LPF_RC; // RC = 1/omegac
+    float Output_LPF_RC;     // RC = 1/omegac
     float Derivative_LPF_RC;
+    float Output_MaxDelta;   // 输出变化率限制(>0 启用)，单周期输出最大变化量，与 PID_OutputRateLimit 配合
 } PID_Init_Config_s;
 
 /**

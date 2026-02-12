@@ -143,12 +143,16 @@ void SentryChassisInit(void) {
                         .Kp = STEER_ANGLE_PID_KP,
                         .Ki = STEER_ANGLE_PID_KI,
                         .Kd = STEER_ANGLE_PID_KD,
-                        .DeadBand = 0.0f,
+                        .DeadBand = STEER_ANGLE_PID_DEADBAND,
                         .Improve = PID_Trapezoid_Intergral |
                                    PID_Integral_Limit |
-                                   PID_Derivative_On_Measurement,
+                                   PID_Derivative_On_Measurement |
+                                   PID_OutputFilter |
+                                   PID_OutputRateLimit,
                         .IntegralLimit = STEER_ANGLE_PID_INT_LIMIT,
                         .MaxOut = STEER_ANGLE_PID_MAX_OUT,
+                        .Output_LPF_RC = STEER_ANGLE_OUTPUT_LPF_RC,
+                        .Output_MaxDelta = STEER_ANGLE_OUTPUT_MAX_DELTA,
                     },
                 .speed_PID =
                     {

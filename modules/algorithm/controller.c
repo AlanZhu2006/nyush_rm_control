@@ -80,6 +80,16 @@ static void f_Output_Filter(PIDInstance *pid)
                   pid->Last_Output * pid->Output_LPF_RC / (pid->Output_LPF_RC + pid->dt);
 }
 
+// 输出变化率限制(单周期最大变化)，与滤波配合进一步减震
+static void f_Output_RateLimit(PIDInstance *pid)
+{
+    float delta = pid->Output - pid->Last_Output;
+    if (delta > pid->Output_MaxDelta)
+        pid->Output = pid->Last_Output + pid->Output_MaxDelta;
+    else if (delta < -pid->Output_MaxDelta)
+        pid->Output = pid->Last_Output - pid->Output_MaxDelta;
+}
+
 // 输出限幅
 static void f_Output_Limit(PIDInstance *pid)
 {
@@ -187,6 +197,9 @@ float PIDCalculate(PIDInstance *pid, float measure, float ref)
         // 输出滤波
         if (pid->Improve & PID_OutputFilter)
             f_Output_Filter(pid);
+        // 输出变化率限制
+        if ((pid->Improve & PID_OutputRateLimit) && pid->Output_MaxDelta > 0)
+            f_Output_RateLimit(pid);
 
         // 输出限幅
         f_Output_Limit(pid);

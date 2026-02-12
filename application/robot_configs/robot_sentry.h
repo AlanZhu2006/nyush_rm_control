@@ -99,22 +99,22 @@
 #define CHASSIS_CURRENT_PID_MAX_OUT 15000.0f
 
 // PID参数 - Swerve转向电机 (GM6020)
-// 在同步速度与稳定性间折中：过大会两轮颤抖，过小则前轮慢、运动学异常
+// 回到「基本上是好的」那版；死区过大(如 3.5°)易在边界极限环→颤更大
 // 角度环 (outer: angle->speed)
 #define STEER_ANGLE_PID_KP 15.0f
-#define STEER_ANGLE_PID_KI 0.08f
+#define STEER_ANGLE_PID_KI 0.22f
 #define STEER_ANGLE_PID_KD 0.0f
-#define STEER_ANGLE_PID_INT_LIMIT 350.0f
-// 提高最大输出以允许更快的转向响应
-#define STEER_ANGLE_PID_MAX_OUT 600.0f
+#define STEER_ANGLE_PID_DEADBAND 0.5f   // 度
+#define STEER_ANGLE_PID_INT_LIMIT 520.0f
+#define STEER_ANGLE_PID_MAX_OUT 650.0f
+#define STEER_ANGLE_OUTPUT_LPF_RC 0.048f
+#define STEER_ANGLE_OUTPUT_MAX_DELTA 38.0f
 
-// 速度环 (inner: speed->current)，Kd 不宜过大否则易抖
-// 内环速度环更激进以提升响应速度
-#define STEER_SPEED_PID_KP 150.0f
-#define STEER_SPEED_PID_KI 120.0f
+// 速度环 (inner)
+#define STEER_SPEED_PID_KP 90.0f
+#define STEER_SPEED_PID_KI 52.0f
 #define STEER_SPEED_PID_KD 0.0f
 #define STEER_SPEED_PID_INT_LIMIT 3000.0f
-// 增加内环最大输出，允许更大驱动命令
 #define STEER_SPEED_PID_MAX_OUT 10000.0f
 
 // 电流环 (GM6020一般不使用)
