@@ -432,6 +432,95 @@ static void SentrySpinCalculate(float wz) {
 }
 
 /* ================================================================== */
+/*     小陀螺行进：vx,vy,wz -> 舵轮动态角度 + 驱动速度（真正边转边走）   */
+/* ================================================================== */
+/**
+ * @brief 小陀螺行进运动学解算（真正的边转边走）
+ * 
+ * 每个轮子的速度向量 = 平移向量 + 旋转切向向量
+ * 舵轮角度 = 速度向量的方向
+ * 驱动速度 = 速度向量的大小
+ * 
+ * 对于对角线布置(LF和RB)的双舵轮：
+ * - 轮A在左前位置，到中心向量约为(+1,+1)方向，切向约(-1,+1)方向
+ * - 轮B在右后位置，到中心向量约为(-1,-1)方向，切向约(+1,-1)方向
+ *
+ * @param wz 旋转速度（电机速度单位）
+ * @param vx_body 底盘坐标系 x 方向速度（前后）
+ * @param vy_body 底盘坐标系 y 方向速度（左右）
+ */
+static void SentrySpinWithTranslationCalculate(float wz, float vx_body, float vy_body) {
+    /* 
+     * 混合策略：舵轮保持切向，用轮速差实现平移
+     * - y方向(左右)平移：轮速差，完全不影响旋转
+     * - x方向(前后)平移：小角度偏移，缩小比例减少影响
+     * 
+     * 切向单位向量（底盘坐标系）：
+     *   轮A: tangent_A = (0, +1) 即朝左
+     *   轮B: tangent_B = (0, -1) 即朝右
+     */
+    
+    /* 平移速度转为电机单位 */
+    float trans_x = vx_body * CHASSIS_DRIVE_SPEED_SCALE;
+    float trans_y = vy_body * CHASSIS_DRIVE_SPEED_SCALE;
+    
+    /* ---- y方向平移：用轮速差实现 ---- */
+    /* 投影到轮A切向(0,+1): proj_a = trans_y */
+    /* 投影到轮B切向(0,-1): proj_b = -trans_y */
+    /* 轮速 = 旋转速度 + 平移投影 */
+    float speed_a = wz + trans_y;
+    float speed_b = wz - trans_y;
+    
+    /* ---- x方向平移：用角度偏移实现（缩小比例） ---- */
+    /* 计算需要的角度偏移，限制在±20度以内 */
+    #define SPIN_X_TRANSLATION_SCALE 0.3f  // x方向缩小到30%
+    #define SPIN_ANGLE_OFFSET_MAX 20.0f    // 最大角度偏移
+    float angle_offset_deg = 0.0f;
+    if (fabsf(wz) > 100.0f && fabsf(vx_body) > 0.05f) {
+        /* 计算产生x方向力需要的角度偏移 */
+        float trans_x_scaled = trans_x * SPIN_X_TRANSLATION_SCALE;
+        angle_offset_deg = atan2f(trans_x_scaled, fabsf(wz)) * (180.0f / 3.14159265f);
+        /* 限制角度偏移 */
+        if (angle_offset_deg > SPIN_ANGLE_OFFSET_MAX) angle_offset_deg = SPIN_ANGLE_OFFSET_MAX;
+        if (angle_offset_deg < -SPIN_ANGLE_OFFSET_MAX) angle_offset_deg = -SPIN_ANGLE_OFFSET_MAX;
+    }
+    
+    /* ---- 计算舵轮目标角度 ---- */
+    /* 基础切向角度 + x方向偏移 */
+    float tangent_ticks_a = STEER_MOTOR_A_INIT_ANGLE + SPIN_TANGENT_OFFSET_A 
+                          + angle_offset_deg * (STEER_ECD_PER_REV / 360.0f);
+    float tangent_ticks_b = STEER_MOTOR_B_INIT_ANGLE + SPIN_TANGENT_OFFSET_B 
+                          + angle_offset_deg * (STEER_ECD_PER_REV / 360.0f);
+    
+    /* wrap到0-8191范围 */
+    while (tangent_ticks_a >= STEER_ECD_PER_REV) tangent_ticks_a -= STEER_ECD_PER_REV;
+    while (tangent_ticks_a < 0.0f) tangent_ticks_a += STEER_ECD_PER_REV;
+    while (tangent_ticks_b >= STEER_ECD_PER_REV) tangent_ticks_b -= STEER_ECD_PER_REV;
+    while (tangent_ticks_b < 0.0f) tangent_ticks_b += STEER_ECD_PER_REV;
+    
+    /* 转换为角度用于电机控制 */
+    float target_deg_a = tangent_ticks_a * (360.0f / STEER_ECD_PER_REV);
+    float target_deg_b = tangent_ticks_b * (360.0f / STEER_ECD_PER_REV);
+    float cur_single_a = motor_steer_a->measure.angle_single_round;
+    float cur_single_b = motor_steer_b->measure.angle_single_round;
+    
+    /* 最短路径计算 */
+    float delta_a = target_deg_a - cur_single_a;
+    float delta_b = target_deg_b - cur_single_b;
+    if (delta_a > 180.0f) delta_a -= 360.0f;
+    if (delta_a < -180.0f) delta_a += 360.0f;
+    if (delta_b > 180.0f) delta_b -= 360.0f;
+    if (delta_b < -180.0f) delta_b += 360.0f;
+    
+    DJIMotorSetRef(motor_steer_a, motor_steer_a->measure.total_angle + delta_a);
+    DJIMotorSetRef(motor_steer_b, motor_steer_b->measure.total_angle + delta_b);
+    
+    /* 驱动轮速度 */
+    vt_drive_a = speed_a;
+    vt_drive_b = speed_b;
+}
+
+/* ================================================================== */
 /*                          主任务                                      */
 /* ================================================================== */
 void SentryChassisTask(void) {
@@ -493,13 +582,20 @@ void SentryChassisTask(void) {
         chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
 
     /* ---- 运动学解算 ---- */
-    /* 根据是否有旋转命令选择解算方式 */
+    /* 根据是否有旋转命令和平移输入选择解算方式 */
+    float has_translation = (fabsf(chassis_vx) > 0.05f || fabsf(chassis_vy) > 0.05f);
+    
     if (chassis_cmd_recv.chassis_mode == CHASSIS_ROTATE) {
-        /* 小陀螺模式：仅旋转，忽略平移（或可选叠加平移） */
-        SentrySpinCalculate(chassis_wz);
+        if (has_translation) {
+            /* 小陀螺行进模式：旋转 + 平移叠加 */
+            SentrySpinWithTranslationCalculate(chassis_wz, chassis_vx, chassis_vy);
+        } else {
+            /* 纯小陀螺：使用固定切向角度 */
+            SentrySpinCalculate(chassis_wz);
+        }
     } else if (fabsf(chassis_wz) > 0.1f) {
-        /* 有外部wz输入时（如雷达控制），也执行旋转 */
-        SentrySpinCalculate(chassis_wz);
+        /* 有外部wz输入时（如雷达控制），也执行旋转+平移 */
+        SentrySpinWithTranslationCalculate(chassis_wz, chassis_vx, chassis_vy);
     } else {
         /* 纯平移模式 */
         SentryTranslationCalculate(chassis_vx, chassis_vy);
