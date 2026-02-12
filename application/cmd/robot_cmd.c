@@ -189,19 +189,22 @@ static void CalcOffsetAngle()
  */
 static void RemoteControlSet()
 {
+    // 遥控器模式下重置 wz（避免雷达数据残留影响）
+    chassis_cmd_send.wz = 0.0f;
+    
     // 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据?
-    if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[下],底盘跟随云台
+    if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[下],底盘小陀螺模式
     {
         chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
         gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
     }
-    else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中],云台自转(小陀螺),底盘不跟随
+    else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中],云台自转,底盘不跟随
     {
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
         gimbal_cmd_send.yaw += GIMBAL_SPIN_DEG_PER_S * (1.0f / 200.0f); // 200Hz 每帧累加
     }
-    else if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上],底盘不跟随
+    else if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上],底盘不跟随(普通移动)
     {
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
@@ -436,7 +439,9 @@ void RobotCMDTask()
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         chassis_cmd_send.vx = radar_data->vx;
         chassis_cmd_send.vy = radar_data->vy;
-        chassis_cmd_send.wz = radar_data->wz;
+        // 上位机发送的wz是rad/s，需要转换为电机速度单位
+        // 缩放因子与 sentry_controller.c 中的 CHASSIS_SPIN_SPEED_SCALE 保持一致
+        chassis_cmd_send.wz = radar_data->wz * 15000.0f;
     }
 #endif
 

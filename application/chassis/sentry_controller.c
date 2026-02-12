@@ -70,7 +70,17 @@ static DJIMotorInstance* motor_steer_b;  // 舵轮B的转向电机 (GM6020)
 
 /* ======================== 中间变量 ======================== */
 static float chassis_vx, chassis_vy;  // 底盘坐标系下的速度分量
+static float chassis_wz;              // 底盘旋转速度
 static float vt_drive_a, vt_drive_b;  // 两个驱动轮的速度输出
+
+/* 小陀螺时舵轮的切向角度偏移（编码器ticks） */
+/* 对于对角线布置(LF和RB)，两个轮子的切向方向相差180度 */
+/* 舵轮A偏移+90度，舵轮B偏移-90度，这样它们指向相反的切向方向 */
+#define SPIN_TANGENT_OFFSET_A (+STEER_ECD_PER_REV / 4.0f)   // +90度 = +2048 ticks
+#define SPIN_TANGENT_OFFSET_B (-STEER_ECD_PER_REV / 4.0f)   // -90度 = -2048 ticks
+
+/* 小陀螺速度缩放，与平移速度缩放类似 */
+#define CHASSIS_SPIN_SPEED_SCALE 15000.0f
 
 /* ================================================================== */
 /*                          初始化                                      */
@@ -351,6 +361,77 @@ static void SentryTranslationCalculate(float vx_body, float vy_body) {
 }
 
 /* ================================================================== */
+/*         小陀螺运动学解算：wz -> 舵轮切向角度 + 驱动速度               */
+/* ================================================================== */
+/**
+ * @brief 小陀螺（绕底盘中心旋转）运动学解算
+ * 
+ * 对于对角线布置的双舵轮(LF和RB位置)：
+ * - 两个舵轮需要转到切向方向（垂直于从中心到轮子的连线）
+ * - 对于LF(左前): 切向方向约指向右后 (从init_angle偏移-90度即顺时针90度)
+ * - 对于RB(右后): 切向方向约指向左前 (从init_angle偏移-90度即顺时针90度)
+ * - 这样两轮同向驱动可产生绕中心的旋转力矩
+ *
+ * @param wz 旋转速度（正值为逆时针/CCW）
+ */
+static void SentrySpinCalculate(float wz) {
+    /* 死区处理 */
+    if (fabsf(wz) < 0.1f) {
+        /* wz过小则停止旋转，保持舵轮init位置 */
+        float init_deg_a = STEER_MOTOR_A_INIT_ANGLE * (360.0f / STEER_ECD_PER_REV);
+        float init_deg_b = STEER_MOTOR_B_INIT_ANGLE * (360.0f / STEER_ECD_PER_REV);
+        float cur_single_a = motor_steer_a->measure.angle_single_round;
+        float cur_single_b = motor_steer_b->measure.angle_single_round;
+
+        float delta_a = init_deg_a - cur_single_a;
+        float delta_b = init_deg_b - cur_single_b;
+        if (delta_a > 180.0f) delta_a -= 360.0f;
+        if (delta_a < -180.0f) delta_a += 360.0f;
+        if (delta_b > 180.0f) delta_b -= 360.0f;
+        if (delta_b < -180.0f) delta_b += 360.0f;
+
+        DJIMotorSetRef(motor_steer_a, motor_steer_a->measure.total_angle + delta_a);
+        DJIMotorSetRef(motor_steer_b, motor_steer_b->measure.total_angle + delta_b);
+        vt_drive_a = 0.0f;
+        vt_drive_b = 0.0f;
+        return;
+    }
+
+    /* 计算切向目标角度：舵轮A偏移+90度，舵轮B偏移-90度（相反方向） */
+    /* 这样两个对角线舵轮指向相反的切向方向，同向驱动产生旋转力矩 */
+    float tangent_ticks_a = STEER_MOTOR_A_INIT_ANGLE + SPIN_TANGENT_OFFSET_A;
+    float tangent_ticks_b = STEER_MOTOR_B_INIT_ANGLE + SPIN_TANGENT_OFFSET_B;
+    
+    /* wrap到0-8191范围 */
+    while (tangent_ticks_a >= STEER_ECD_PER_REV) tangent_ticks_a -= STEER_ECD_PER_REV;
+    while (tangent_ticks_a < 0.0f) tangent_ticks_a += STEER_ECD_PER_REV;
+    while (tangent_ticks_b >= STEER_ECD_PER_REV) tangent_ticks_b -= STEER_ECD_PER_REV;
+    while (tangent_ticks_b < 0.0f) tangent_ticks_b += STEER_ECD_PER_REV;
+
+    /* 转换为角度 */
+    float target_deg_a = tangent_ticks_a * (360.0f / STEER_ECD_PER_REV);
+    float target_deg_b = tangent_ticks_b * (360.0f / STEER_ECD_PER_REV);
+    float cur_single_a = motor_steer_a->measure.angle_single_round;
+    float cur_single_b = motor_steer_b->measure.angle_single_round;
+
+    /* 计算最短路径增量 */
+    float delta_a = target_deg_a - cur_single_a;
+    float delta_b = target_deg_b - cur_single_b;
+    if (delta_a > 180.0f) delta_a -= 360.0f;
+    if (delta_a < -180.0f) delta_a += 360.0f;
+    if (delta_b > 180.0f) delta_b -= 360.0f;
+    if (delta_b < -180.0f) delta_b += 360.0f;
+
+    DJIMotorSetRef(motor_steer_a, motor_steer_a->measure.total_angle + delta_a);
+    DJIMotorSetRef(motor_steer_b, motor_steer_b->measure.total_angle + delta_b);
+
+    /* 驱动轮速度：wz 直接作为电机速度（已在外部完成单位转换） */
+    /* 对于对角线布置，两个轮子同向转动会产生绕中心的力矩 */
+    vt_drive_a = wz;
+    vt_drive_b = wz;
+}
+
+/* ================================================================== */
 /*                          主任务                                      */
 /* ================================================================== */
 void SentryChassisTask(void) {
@@ -388,16 +469,18 @@ void SentryChassisTask(void) {
     /* ---- 根据控制模式修正 wz ---- */
     switch (chassis_cmd_recv.chassis_mode) {
         case CHASSIS_NO_FOLLOW:
-            chassis_cmd_recv.wz = 0;
+            /* NO_FOLLOW模式：使用外部传入的wz（如雷达控制），若无则为0 */
+            chassis_wz = chassis_cmd_recv.wz;
             break;
         case CHASSIS_FOLLOW_GIMBAL_YAW:
-            chassis_cmd_recv.wz = -1.5f * chassis_cmd_recv.offset_angle *
+            chassis_wz = -1.5f * chassis_cmd_recv.offset_angle *
                                   fabsf(chassis_cmd_recv.offset_angle);
             break;
         case CHASSIS_ROTATE:
-            chassis_cmd_recv.wz = CHASSIS_ROTATE_SPEED;
+            chassis_wz = CHASSIS_ROTATE_SPEED;
             break;
         default:
+            chassis_wz = chassis_cmd_recv.wz;  // 使用外部传入的wz
             break;
     }
 
@@ -410,7 +493,17 @@ void SentryChassisTask(void) {
         chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
 
     /* ---- 运动学解算 ---- */
-    SentryTranslationCalculate(chassis_vx, chassis_vy);
+    /* 根据是否有旋转命令选择解算方式 */
+    if (chassis_cmd_recv.chassis_mode == CHASSIS_ROTATE) {
+        /* 小陀螺模式：仅旋转，忽略平移（或可选叠加平移） */
+        SentrySpinCalculate(chassis_wz);
+    } else if (fabsf(chassis_wz) > 0.1f) {
+        /* 有外部wz输入时（如雷达控制），也执行旋转 */
+        SentrySpinCalculate(chassis_wz);
+    } else {
+        /* 纯平移模式 */
+        SentryTranslationCalculate(chassis_vx, chassis_vy);
+    }
 
     /* ---- 设置驱动轮输出 ---- */
     SentryLimitChassisOutput();
