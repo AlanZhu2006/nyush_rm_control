@@ -41,5 +41,6 @@
     // ==================== 编辑器配置 ====================
     "files.encoding": "utf8",
     "editor.formatOnSave": false,
-    "files.eol": "\n"
+    "files.eol": "\n",
+    "stm32-for-vscode.makePath": false
 }
