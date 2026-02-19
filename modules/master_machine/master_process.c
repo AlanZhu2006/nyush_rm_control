@@ -15,6 +15,7 @@
 #include "robot_def.h"
 #include "crc8.h"
 #include "crc16.h"
+#include "stm32f4xx_hal.h"
 #include "string.h"
 
 static Vision_Recv_s recv_data;
@@ -372,4 +373,166 @@ void SendRobotStatus(const Robot_Status_Send_s *status)
 #ifdef VISION_USE_VCP
     USBTransmit(send_buff, 1 + data_len + 2);
 #endif
+}
+
+/* ========== NavComm (Radar/Navigation Command Receiver) ========== */
+/*
+ * Protocol: [0xA5][0x5A][vx:f32][vy:f32][wz:f32][crc8]
+ * CRC8 polynomial: 0x07
+ * Total frame size: 15 bytes
+ */
+
+// CRC8: polynomial 0x07 (same as robomaster cmd_vel_forwarder.py)
+static uint8_t nav_crc8_update(uint8_t crc, uint8_t data)
+{
+    crc ^= data;
+    for (int i = 0; i < 8; i++)
+    {
+        if (crc & 0x80)
+            crc = (crc << 1) ^ 0x07;
+        else
+            crc = (crc << 1);
+    }
+    return crc;
+}
+
+static uint8_t nav_crc8_calc(const uint8_t *data, uint32_t len)
+{
+    uint8_t crc = 0;
+    for (uint32_t i = 0; i < len; i++)
+        crc = nav_crc8_update(crc, data[i]);
+    return crc;
+}
+
+typedef struct
+{
+    uint8_t buffer[RADAR_RX_BUFFER_SIZE];
+    volatile uint32_t write_idx;
+    uint32_t read_idx;
+} NavRingBuffer_t;
+
+static NavRingBuffer_t nav_ring_buffer;
+static Nav_Cmd_Recv_s nav_cmd_data;
+static uint32_t nav_last_valid_time_ms = 0u;
+
+#define NAV_DATA_TIMEOUT_MS 1000u
+
+static void nav_ring_buffer_write(const uint8_t *data, uint32_t len)
+{
+    if (data == NULL || len == 0)
+        return;
+    for (uint32_t i = 0; i < len; i++)
+    {
+        uint32_t next_idx = (nav_ring_buffer.write_idx + 1) % RADAR_RX_BUFFER_SIZE;
+        nav_ring_buffer.buffer[nav_ring_buffer.write_idx] = data[i];
+        nav_ring_buffer.write_idx = next_idx;
+    }
+}
+
+static int nav_ring_buffer_read_one(uint8_t *byte)
+{
+    if (nav_ring_buffer.read_idx == nav_ring_buffer.write_idx)
+        return -1;
+    *byte = nav_ring_buffer.buffer[nav_ring_buffer.read_idx];
+    nav_ring_buffer.read_idx = (nav_ring_buffer.read_idx + 1) % RADAR_RX_BUFFER_SIZE;
+    return 0;
+}
+
+static int nav_ring_buffer_peek(uint32_t offset, uint8_t *byte)
+{
+    if (offset >= RADAR_RX_BUFFER_SIZE)
+        return -1;
+    uint32_t idx = (nav_ring_buffer.read_idx + offset) % RADAR_RX_BUFFER_SIZE;
+    if (idx == nav_ring_buffer.write_idx && offset > 0)
+        return -1;
+    *byte = nav_ring_buffer.buffer[idx];
+    return 0;
+}
+
+static void nav_ring_buffer_skip(uint32_t count)
+{
+    nav_ring_buffer.read_idx = (nav_ring_buffer.read_idx + count) % RADAR_RX_BUFFER_SIZE;
+}
+
+void NavComm_RxCallback(uint8_t *buf, uint32_t len)
+{
+    if (buf == NULL || len == 0)
+        return;
+    nav_ring_buffer_write(buf, len);
+}
+
+void NavComm_Task(void)
+{
+    uint8_t byte = 0;
+
+    while (nav_ring_buffer_read_one(&byte) == 0)
+    {
+        if (byte != RADAR_FRAME_SYNC1)
+            continue;
+
+        if (nav_ring_buffer_peek(0, &byte) != 0)
+            break;
+        if (byte != RADAR_FRAME_SYNC2)
+            continue;
+
+        if (nav_ring_buffer.read_idx == nav_ring_buffer.write_idx)
+        {
+            nav_ring_buffer.read_idx = (nav_ring_buffer.read_idx - 1 + RADAR_RX_BUFFER_SIZE) % RADAR_RX_BUFFER_SIZE;
+            break;
+        }
+
+        uint32_t available = nav_ring_buffer.write_idx >= nav_ring_buffer.read_idx
+                                 ? (nav_ring_buffer.write_idx - nav_ring_buffer.read_idx + 1)
+                                 : (RADAR_RX_BUFFER_SIZE - nav_ring_buffer.read_idx + nav_ring_buffer.write_idx + 1);
+
+        if (available < RADAR_FRAME_SIZE)
+        {
+            nav_ring_buffer.read_idx = (nav_ring_buffer.read_idx - 1 + RADAR_RX_BUFFER_SIZE) % RADAR_RX_BUFFER_SIZE;
+            break;
+        }
+
+        uint8_t frame[RADAR_FRAME_SIZE];
+        frame[0] = RADAR_FRAME_SYNC1;
+        frame[1] = RADAR_FRAME_SYNC2;
+        nav_ring_buffer_skip(1);
+
+        for (int i = 2; i < RADAR_FRAME_SIZE; i++)
+        {
+            if (nav_ring_buffer_read_one(&frame[i]) != 0)
+                return;
+        }
+
+        uint8_t crc_calc = nav_crc8_calc(frame, RADAR_FRAME_SIZE - 1);
+        uint8_t crc_recv = frame[RADAR_FRAME_SIZE - 1];
+        if (crc_calc != crc_recv)
+            continue;
+
+        float f_vx = 0.0f, f_vy = 0.0f, f_wz = 0.0f;
+        memcpy(&f_vx, &frame[2], sizeof(float));
+        memcpy(&f_vy, &frame[6], sizeof(float));
+        memcpy(&f_wz, &frame[10], sizeof(float));
+
+        nav_cmd_data.vx = f_vx;
+        nav_cmd_data.vy = f_vy;
+        nav_cmd_data.wz = f_wz;
+        nav_cmd_data.ts_ms = HAL_GetTick();
+        nav_cmd_data.valid = 1;
+        nav_last_valid_time_ms = nav_cmd_data.ts_ms;
+    }
+
+    uint32_t now = HAL_GetTick();
+    if (nav_cmd_data.valid && (now - nav_last_valid_time_ms > NAV_DATA_TIMEOUT_MS))
+        nav_cmd_data.valid = 0;
+}
+
+Nav_Cmd_Recv_s *NavComm_Init(void)
+{
+    memset(&nav_ring_buffer, 0, sizeof(nav_ring_buffer));
+    memset(&nav_cmd_data, 0, sizeof(nav_cmd_data));
+    return &nav_cmd_data;
+}
+
+Nav_Cmd_Recv_s *NavComm_GetData(void)
+{
+    return &nav_cmd_data;
 }

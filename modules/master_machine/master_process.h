@@ -19,6 +19,17 @@
 #define PACKET_HEADER_TWIST         0xA4  // 底盘速度控制 (由radar_comm模块处理，此处仅定义)
 #define PACKET_HEADER_ROBOT_CTRL    0xA3  // 机器人控制命令 (云台扫描等)
 
+/* ================== Radar/Nav通讯协议定义 (原radar_comm) ================== */
+// 协议格式: [SYNC1=0xA5] [SYNC2=0x5A] [vx:4B] [vy:4B] [wz:4B] [CRC8:1B]
+// Total: 15 bytes (2 + 12 + 1)
+// CRC8: polynomial 0x07, computed over first 14 bytes
+#define RADAR_FRAME_SYNC1 0xA5u
+#define RADAR_FRAME_SYNC2 0x5Au
+#define RADAR_FRAME_SIZE 15u
+#define RADAR_FRAME_DATA_SIZE 12u  // 3 floats
+#define RADAR_RX_BUFFER_SIZE 128u  // Circular buffer for USB CDC data
+#define RADAR_DATA_TIMEOUT_MS 1000u
+
 // flags_register bit layout (LSB -> MSB)
 // [1:0]  fire_mode
 // [3:2]  target_state
@@ -153,7 +164,17 @@ typedef struct
 } Robot_Status_Send_s;
 
 /* ================== 新增：上位机下发控制命令结构体 ================== */
-// 机器人控制命令 (对应SMBU的SendPacketRobotControl) - 注：导航速度由radar_comm处理
+// 导航速度控制 (原radar_comm协议: [0xA5][0x5A][vx][vy][wz][crc8])
+typedef struct
+{
+	float vx;        // m/s
+	float vy;        // m/s
+	float wz;        // rad/s
+	uint32_t ts_ms;  // HAL_GetTick() timestamp when frame was parsed
+	uint8_t valid;   // 1 = valid, 0 = timeout or error
+} Nav_Cmd_Recv_s;
+
+// 机器人控制命令 (对应SMBU的SendPacketRobotControl)
 typedef struct
 {
 	uint8_t stop_gimbal_scan;   // 是否停止云台扫描 0-继续扫描 1-停止
@@ -216,9 +237,34 @@ void SendRobotStatus(const Robot_Status_Send_s *status);
 
 /**
  * @brief 获取机器人控制命令数据指针 (云台扫描控制等)
- * @note 导航速度命令 (vx,vy,wz) 由 radar_comm 模块处理
  * @return Robot_Ctrl_Recv_s* 机器人控制命令数据
  */
 Robot_Ctrl_Recv_s *GetRobotCtrl(void);
+
+/* ================== 导航通讯接口 (原radar_comm) ================== */
+
+/**
+ * @brief 初始化导航通讯 (USB CDC)
+ * @return Nav_Cmd_Recv_s* 返回接收数据结构体指针
+ */
+Nav_Cmd_Recv_s *NavComm_Init(void);
+
+/**
+ * @brief USB CDC接收回调函数 (从CDC_Receive_FS调用) - 写入环形缓冲区, ISR安全
+ * @param buf 接收数据缓冲区
+ * @param len 接收数据长度
+ */
+void NavComm_RxCallback(uint8_t *buf, uint32_t len);
+
+/**
+ * @brief 处理环形缓冲区中的待处理数据. 需周期性调用 (如RobotCMDTask中200Hz)
+ */
+void NavComm_Task(void);
+
+/**
+ * @brief 获取最新导航数据指针
+ * @return Nav_Cmd_Recv_s* 导航速度命令数据
+ */
+Nav_Cmd_Recv_s *NavComm_GetData(void);
 
 #endif // !MASTER_PROCESS_H
