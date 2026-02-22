@@ -138,6 +138,8 @@ void RobotCMDInit()
     chassis_cmd_send.vy = 0.0f;
     chassis_cmd_send.wz = 0.0f;
     chassis_cmd_send.offset_angle = 0.0f;
+    chassis_cmd_send.ref_yaw_deg = 0.0f;
+    chassis_cmd_send.ref_yaw_valid = 0;
     chassis_cmd_send.chassis_speed_buff = 0;
 #ifdef GIMBAL_BOARD
     CANComm_Init_Config_s comm_conf = {
@@ -424,6 +426,7 @@ void RobotCMDTask()
     SubGetMessage(shoot_feed_sub, &shoot_fetch_data);
     SubGetMessage(gimbal_feed_sub, &gimbal_fetch_data);
 
+    chassis_cmd_send.ref_yaw_valid = 0;  // 默认不用雷达 ref_yaw，雷达有效时再置 1
     // 根据gimbal的反馈值计算云台和底盘正方向的夹角,不需要传参,通过static私有变量完成
     CalcOffsetAngle();
     // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
@@ -439,9 +442,9 @@ void RobotCMDTask()
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         chassis_cmd_send.vx = radar_data->vx;
         chassis_cmd_send.vy = radar_data->vy;
-        // 上位机发送的wz是rad/s，需要转换为电机速度单位
-        // 缩放因子与 sentry_controller.c 中的 CHASSIS_SPIN_SPEED_SCALE 保持一致
         chassis_cmd_send.wz = radar_data->wz * 15000.0f;
+        chassis_cmd_send.ref_yaw_deg = radar_data->yaw_deg;
+        chassis_cmd_send.ref_yaw_valid = 1;
     }
 #endif
 

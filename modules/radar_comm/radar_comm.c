@@ -2,11 +2,9 @@
  * @file radar_comm.c
  * @brief Radar communication module (USB CDC) - framing, CRC8, ring buffer
  *
- * Protocol: [0xA5][0x5A][vx:f32][vy:f32][wz:f32][crc8]
+ * Protocol: [0xA5][0x5A][vx:f32][vy:f32][wz:f32][yaw:f32][crc8]
+ * yaw: 底盘在雷达/世界系下的 yaw（度）
  * CRC8 polynomial: 0x07
- *
- * Data flow: CDC_Receive_FS -> RadarComm_RxCallback -> ring buffer
- *            RadarComm_Task -> parse frames -> PubPushMessage("radar_cmd")
  */
 
 #include "radar_comm.h"
@@ -138,14 +136,16 @@ void RadarComm_Task(void)
         if (crc_calc != crc_recv)
             continue;
 
-        float f_vx = 0.0f, f_vy = 0.0f, f_wz = 0.0f;
+        float f_vx = 0.0f, f_vy = 0.0f, f_wz = 0.0f, f_yaw = 0.0f;
         memcpy(&f_vx, &frame[2], sizeof(float));
         memcpy(&f_vy, &frame[6], sizeof(float));
         memcpy(&f_wz, &frame[10], sizeof(float));
+        memcpy(&f_yaw, &frame[14], sizeof(float));
 
         recv_data.vx = f_vx;
         recv_data.vy = f_vy;
         recv_data.wz = f_wz;
+        recv_data.yaw_deg = f_yaw;
         recv_data.ts_ms = HAL_GetTick();
         recv_data.valid = 1;
         last_valid_time_ms = recv_data.ts_ms;

@@ -79,7 +79,7 @@
 #define SHOOT_FRICTION_R_ID 8  // 右摩擦轮 (M3508 ID 8, 0x208)
 
 // 底盘运动参数
-#define CHASSIS_ROTATE_SPEED 15000.0f  // 小陀螺模式旋转速度
+#define CHASSIS_ROTATE_SPEED 20000.0f  // 小陀螺模式旋转速度
 #define CHASSIS_DRIVE_SPEED_SCALE 23000.0f  // 驱动轮满速缩放(mag=1 时的速度)，调大=最大速度更快
 #define CHASSIS_RC_MOVE_RATIO_X 5.0f // 遥控器模式底盘前后移动速度系数(已按摇杆归一化，此保留备用)
 #define CHASSIS_RC_MOVE_RATIO_Y 5.0f

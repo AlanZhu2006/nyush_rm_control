@@ -118,7 +118,9 @@ typedef struct
     float vx;           // 前进方向速度
     float vy;           // 横移方向速度
     float wz;           // 旋转速度
-    float offset_angle; // 底盘和归中位置的夹角
+    float offset_angle; // 底盘和归中位置的夹角（云台系）
+    float ref_yaw_deg;  // 雷达IMU时有效：底盘在雷达/世界系下的yaw(度)，用于固定正方向
+    uint8_t ref_yaw_valid; // 1=使用ref_yaw_deg做速度变换，0=使用offset_angle
     chassis_mode_e chassis_mode;
     int chassis_speed_buff;
     // UI部分

@@ -451,60 +451,61 @@ static void SentrySpinCalculate(float wz) {
  */
 static void SentrySpinWithTranslationCalculate(float wz, float vx_body, float vy_body) {
     /* 
-     * 混合策略：舵轮保持切向，用轮速差实现平移
-     * - y方向(左右)平移：轮速差，完全不影响旋转
-     * - x方向(前后)平移：小角度偏移，缩小比例减少影响
+     * 向量叠加：每个轮子的速度向量 = 平移向量 + 旋转切向向量
+     * 舵轮角度 = 速度向量的方向
+     * 驱动速度 = 速度向量的大小
      * 
-     * 切向单位向量（底盘坐标系）：
+     * 切向单位向量（底盘坐标系，+90度偏移）：
      *   轮A: tangent_A = (0, +1) 即朝左
      *   轮B: tangent_B = (0, -1) 即朝右
      */
     
-    /* 平移速度转为电机单位 */
-    float trans_x = vx_body * CHASSIS_DRIVE_SPEED_SCALE;
-    float trans_y = vy_body * CHASSIS_DRIVE_SPEED_SCALE;
+    /* 平移速度缩放：在旋转效率和平移速度间平衡 */
+    #define SPIN_TRANSLATION_SCALE 0.45f  // 40%平移速度
+    float trans_x = vx_body * CHASSIS_DRIVE_SPEED_SCALE * SPIN_TRANSLATION_SCALE;
+    float trans_y = vy_body * CHASSIS_DRIVE_SPEED_SCALE * SPIN_TRANSLATION_SCALE;
     
-    /* ---- y方向平移：用轮速差实现 ---- */
-    /* 投影到轮A切向(0,+1): proj_a = trans_y */
-    /* 投影到轮B切向(0,-1): proj_b = -trans_y */
-    /* 轮速 = 旋转速度 + 平移投影 */
-    float speed_a = wz + trans_y;
-    float speed_b = wz - trans_y;
+    /* 旋转切向速度 */
+    float rot_tangent = wz;
     
-    /* ---- x方向平移：用角度偏移实现（缩小比例） ---- */
-    /* 计算需要的角度偏移，限制在±20度以内 */
-    #define SPIN_X_TRANSLATION_SCALE 0.3f  // x方向缩小到30%
-    #define SPIN_ANGLE_OFFSET_MAX 20.0f    // 最大角度偏移
-    float angle_offset_deg = 0.0f;
-    if (fabsf(wz) > 100.0f && fabsf(vx_body) > 0.05f) {
-        /* 计算产生x方向力需要的角度偏移 */
-        float trans_x_scaled = trans_x * SPIN_X_TRANSLATION_SCALE;
-        angle_offset_deg = atan2f(trans_x_scaled, fabsf(wz)) * (180.0f / 3.14159265f);
-        /* 限制角度偏移 */
-        if (angle_offset_deg > SPIN_ANGLE_OFFSET_MAX) angle_offset_deg = SPIN_ANGLE_OFFSET_MAX;
-        if (angle_offset_deg < -SPIN_ANGLE_OFFSET_MAX) angle_offset_deg = -SPIN_ANGLE_OFFSET_MAX;
-    }
+    /* 切向单位向量 */
+    float tan_x_a = 0.0f, tan_y_a = 1.0f;   // 轮A切向(0, +1)
+    float tan_x_b = 0.0f, tan_y_b = -1.0f;  // 轮B切向(0, -1)
     
-    /* ---- 计算舵轮目标角度 ---- */
-    /* 基础切向角度 + x方向偏移 */
-    float tangent_ticks_a = STEER_MOTOR_A_INIT_ANGLE + SPIN_TANGENT_OFFSET_A 
-                          + angle_offset_deg * (STEER_ECD_PER_REV / 360.0f);
-    float tangent_ticks_b = STEER_MOTOR_B_INIT_ANGLE + SPIN_TANGENT_OFFSET_B 
-                          + angle_offset_deg * (STEER_ECD_PER_REV / 360.0f);
+    /* 计算每个轮子的速度向量 = 平移 + 旋转切向 */
+    float vx_a = trans_x + rot_tangent * tan_x_a;
+    float vy_a = trans_y + rot_tangent * tan_y_a;
+    float vx_b = trans_x + rot_tangent * tan_x_b;
+    float vy_b = trans_y + rot_tangent * tan_y_b;
+    
+    /* 计算速度向量的大小 */
+    float mag_a = sqrtf(vx_a * vx_a + vy_a * vy_a);
+    float mag_b = sqrtf(vx_b * vx_b + vy_b * vy_b);
+    
+    /* 计算目标角度（底盘坐标系，弧度） */
+    float angle_rad_a = atan2f(vy_a, vx_a);
+    float angle_rad_b = atan2f(vy_b, vx_b);
+    
+    /* 转换为编码器 ticks */
+    float angle_deg_a = angle_rad_a * (180.0f / 3.14159265f);
+    float angle_deg_b = angle_rad_b * (180.0f / 3.14159265f);
+    
+    float target_ticks_a = STEER_MOTOR_A_INIT_ANGLE + angle_deg_a * (STEER_ECD_PER_REV / 360.0f);
+    float target_ticks_b = STEER_MOTOR_B_INIT_ANGLE + angle_deg_b * (STEER_ECD_PER_REV / 360.0f);
     
     /* wrap到0-8191范围 */
-    while (tangent_ticks_a >= STEER_ECD_PER_REV) tangent_ticks_a -= STEER_ECD_PER_REV;
-    while (tangent_ticks_a < 0.0f) tangent_ticks_a += STEER_ECD_PER_REV;
-    while (tangent_ticks_b >= STEER_ECD_PER_REV) tangent_ticks_b -= STEER_ECD_PER_REV;
-    while (tangent_ticks_b < 0.0f) tangent_ticks_b += STEER_ECD_PER_REV;
+    while (target_ticks_a >= STEER_ECD_PER_REV) target_ticks_a -= STEER_ECD_PER_REV;
+    while (target_ticks_a < 0.0f) target_ticks_a += STEER_ECD_PER_REV;
+    while (target_ticks_b >= STEER_ECD_PER_REV) target_ticks_b -= STEER_ECD_PER_REV;
+    while (target_ticks_b < 0.0f) target_ticks_b += STEER_ECD_PER_REV;
     
     /* 转换为角度用于电机控制 */
-    float target_deg_a = tangent_ticks_a * (360.0f / STEER_ECD_PER_REV);
-    float target_deg_b = tangent_ticks_b * (360.0f / STEER_ECD_PER_REV);
+    float target_deg_a = target_ticks_a * (360.0f / STEER_ECD_PER_REV);
+    float target_deg_b = target_ticks_b * (360.0f / STEER_ECD_PER_REV);
     float cur_single_a = motor_steer_a->measure.angle_single_round;
     float cur_single_b = motor_steer_b->measure.angle_single_round;
     
-    /* 最短路径计算 */
+    /* 最短路径计算，同时处理反向优化 */
     float delta_a = target_deg_a - cur_single_a;
     float delta_b = target_deg_b - cur_single_b;
     if (delta_a > 180.0f) delta_a -= 360.0f;
@@ -512,12 +513,23 @@ static void SentrySpinWithTranslationCalculate(float wz, float vx_body, float vy
     if (delta_b > 180.0f) delta_b -= 360.0f;
     if (delta_b < -180.0f) delta_b += 360.0f;
     
+    /* 如果需要转超过90度，反向驱动更优 */
+    float dir_a = 1.0f, dir_b = 1.0f;
+    if (fabsf(delta_a) > 90.0f) {
+        delta_a = (delta_a > 0) ? (delta_a - 180.0f) : (delta_a + 180.0f);
+        dir_a = -1.0f;
+    }
+    if (fabsf(delta_b) > 90.0f) {
+        delta_b = (delta_b > 0) ? (delta_b - 180.0f) : (delta_b + 180.0f);
+        dir_b = -1.0f;
+    }
+    
     DJIMotorSetRef(motor_steer_a, motor_steer_a->measure.total_angle + delta_a);
     DJIMotorSetRef(motor_steer_b, motor_steer_b->measure.total_angle + delta_b);
     
     /* 驱动轮速度 */
-    vt_drive_a = speed_a;
-    vt_drive_b = speed_b;
+    vt_drive_a = dir_a * mag_a;
+    vt_drive_b = dir_b * mag_b;
 }
 
 /* ================================================================== */
@@ -573,13 +585,16 @@ void SentryChassisTask(void) {
             break;
     }
 
-    /* ---- 云台坐标系 -> 底盘坐标系 ---- */
-    float cos_theta = arm_cos_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
-    float sin_theta = arm_sin_f32(chassis_cmd_recv.offset_angle * DEGREE_2_RAD);
-    chassis_vx =-(
-        -chassis_cmd_recv.vx * cos_theta + chassis_cmd_recv.vy * sin_theta);
-    chassis_vy =
-        chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
+    /* ---- 速度坐标系变换 ----
+     * 雷达有效且 ref_yaw_valid：用雷达 IMU 的 ref_yaw_deg，世界->底盘用 -ref_yaw
+     * 否则：用 offset_angle（云台系） */
+    float theta_deg = chassis_cmd_recv.ref_yaw_valid
+                          ? (-chassis_cmd_recv.ref_yaw_deg)
+                          : chassis_cmd_recv.offset_angle;
+    float cos_theta = arm_cos_f32(theta_deg * DEGREE_2_RAD);
+    float sin_theta = arm_sin_f32(theta_deg * DEGREE_2_RAD);
+    chassis_vx = -(-chassis_cmd_recv.vx * cos_theta + chassis_cmd_recv.vy * sin_theta);
+    chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
 
     /* ---- 运动学解算 ---- */
     /* 根据是否有旋转命令和平移输入选择解算方式 */
