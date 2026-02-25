@@ -50,12 +50,31 @@ Or use **STM32CubeProgrammer** (GUI) - see [Flashing Guide](docs/flashing-guide.
 
 ## Architecture
 
-3-layer design with pub-sub messaging:
-- **BSP** - Hardware abstraction (CAN, UART, peripherals)
-- **Modules** - Hardware-agnostic drivers (motors, sensors, algorithms)
-- **Application** - Robot control logic (gimbal, chassis, shooter, command)
+Three-layer design with **pub-sub** via `message_center` (apps do not include each other):
 
-Configuration: `application/robot_def.h`
+| Layer | Path | Role |
+|-------|------|------|
+| **BSP** | `bsp/` | Hardware abstraction on STM32 HAL (CAN, UART, SPI, PWM, GPIO, etc.). Instance + callback pattern. |
+| **Module** | `modules/` | Hardware-agnostic drivers: motors (DJI/HT/LK), IMU, referee, remote, `message_center`, algorithms (PID, EKF). |
+| **Application** | `application/` | Robot logic: `cmd/`, `gimbal/`, `chassis/`, `shoot/`. Subscribes/publishes via `message_center`. |
+
+**Data flow:** RC/Vision → `cmd` → message_center → gimbal / chassis / shoot → feedback → message_center → `cmd`.
+
+**Config:** `application/robot_def.h` (board type, dimensions, motor IDs, vision interface).
+
+## Remotes & sync
+
+- **origin** – upstream (e.g. NYUSH-Robotics-Club); pull updates from here.
+- **newrepo** – this fork; push your branch here only (e.g. `git push newrepo sentry_alan`).
+
+To sync from origin without losing local-only commits (e.g. this README): use **merge**, not reset:
+
+```bash
+git fetch origin
+git merge origin/sentry_alan
+```
+
+Then push the merged result to newrepo: `git push newrepo sentry_alan`. Do **not** run `git reset --hard origin/sentry_alan` if you want to keep commits that exist only on newrepo.
 
 ## Credits
 
